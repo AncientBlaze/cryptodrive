@@ -1,13 +1,13 @@
-import { Slot } from 'expo-router';
+import { Stack, Tabs } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
 
 export default function RootLayout() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>My Expo App</Text>
-      <Slot />
-      <Text style={styles.footer}>© 2023</Text>
-    </View>
+    <Stack>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name='+not-found' options={{ headerShown: false }} />
+    </Stack>
   );
 }
 
@@ -19,9 +19,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
-    backgroundColor:"red",
-    color:"white",
-    textAlign:"center"
+    textAlign: "center"
   },
   footer: {
     marginTop: 10,

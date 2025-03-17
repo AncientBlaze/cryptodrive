@@ -1,109 +1,168 @@
-import React, { useState, useEffect } from "react";
-import { Text, View, Image, StyleSheet, FlatList, ActivityIndicator } from "react-native";
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import axios from 'axios'; // Import axios for API requests
 
-const Index = () => {
-  const [isLoading, setLoading] = useState(true);
-  const [data, setData] = useState([]);
+const AuthScreen = () => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const API_URL = 'YOUR_MONGODB_API_ENDPOINT'; // Replace with your API endpoint
 
-  const getCoins = async () => {
-    try {
-      const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false');
-      const json = await response.json();
-      setData(json);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
+  const handleAuth = async () => {
+    setError('');
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
     }
-  }
 
-  useEffect(() => {
-    setTimeout(() => {
-      getCoins();
-    }, 10000);
-  }, []);
+    if (!email.includes('@')) {
+      setError('Please enter a valid email.');
+      return;
+    }
 
+    if (!isLogin && password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
 
+    try {
+      let response;
+      if (isLogin) {
+        response = await axios.post(`${API_URL}/login`, { email, password }); //API login endpoint
+      } else {
+        response = await axios.post(`${API_URL}/signup`, { email, password }); //API signup endpoint
+      }
 
-  const renderItem = ({ item }) => (
-    <View style={styles.coinContainer}>
-      <View style={styles.coinNameContainer}>
-        <Image style={styles.coinImage} source={{ uri: item.image }} />
-        <View>
-          <Text style={styles.coinName}>{item.name}</Text>
-          <Text style={styles.coinSymbol}>
-            {item.symbol.toUpperCase()}</Text>
-        </View>
-      </View>
-      <View style={styles.priceCounter}>
-        <Text style={styles.coinPrice}>${item.current_price}</Text>
-        <Text style={styles.coinPrice}>{item.price_change_percentage_24h}%</Text>
-      </View>
-    </View>
-  );
+      console.log(response.data); // Handle success (e.g., store token, navigate)
+      //handle success here, store token, navigate, etc.
+
+      // Clear form
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      if (err.response && err.response.data && err.response.data.message) {
+        setError(err.response.data.message); // Display error message from the API
+      } else {
+        setError('An error occurred. Please try again.');
+      }
+      console.error('Authentication error:', err);
+    }
+  };
 
   return (
-    <View style={styles.container}>
-      {isLoading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
-      ) : (
-        <FlatList
-          data={data}
-          keyExtractor={({ id }) => id}
-          renderItem={renderItem}
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <Text style={styles.title}>{isLogin ? 'Login' : 'Signup'}</Text>
+
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
         />
-      )}
-    </View>
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+
+        {!isLogin && (
+          <TextInput
+            style={styles.input}
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+          />
+        )}
+
+        <TouchableOpacity style={styles.button} onPress={handleAuth}>
+          <Text style={styles.buttonText}>{isLogin ? 'Login' : 'Signup'}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setIsLogin(!isLogin)}
+        >
+          <Text style={styles.switchText}>
+            {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Login'}
+          </Text>
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
   container: {
     flex: 1,
+    justifyContent: 'center',
     padding: 20,
-    backgroundColor: 'white'
   },
-  coinContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  input: {
+    height: 50,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 15,
+    backgroundColor: 'white',
+  },
+  button: {
+    backgroundColor: '#007AFF',
+    padding: 15,
+    borderRadius: 8,
     alignItems: 'center',
-    padding: 15
   },
-  coinNameContainer: {
-    flexDirection: 'row',
-    alignItems: 'start',
-    gap: 10
-  },
-  coinSymbol: {
-    color: 'gray',
-    fontWeight: 'bold',
-    marginRight: 10,
-    fontSize: 10
-  },
-  coinName: {
-    color: 'black',
-    fontSize: 16,
-  },
-  coinPrice: {
-    color: 'black',
-    fontWeight: 'bold',
-    fontSize: 16
-  },
-  coinImage: {
-    height: 35,
-    width: 35,
-    padding: 20
-  },
-  priceCounter: {
-    color: '#333',
-    fontWeight: '600',
+  buttonText: {
+    color: 'white',
     fontSize: 18,
-    flexDirection: 'column',
-    alignItems: 'end',
-    justifyContent: 'end',
-    gap: 12,
-    padding: '16px 20px'
-  }
+    fontWeight: 'bold',
+  },
+  switchButton: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  switchText: {
+    color: '#007AFF',
+  },
+  error: {
+    color: 'red',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
 });
 
-export default Index;
+export default AuthScreen;
