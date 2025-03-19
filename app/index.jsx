@@ -17,7 +17,7 @@ const AuthScreen = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const API_URL = 'YOUR_MONGODB_API_ENDPOINT'; // Replace with your API endpoint
+  const API_URL = 'https://4000-idx-cryptodrive-1741678141664.cluster-nx3nmmkbnfe54q3dd4pfbgilpc.cloudworkstations.dev'; // Replace with your API endpoint
 
   const handleAuth = async () => {
     setError('');
@@ -40,9 +40,9 @@ const AuthScreen = () => {
     try {
       let response;
       if (isLogin) {
-        response = await axios.post(`${API_URL}/login`, { email, password }); //API login endpoint
+        response = await axios.post(`${API_URL}/user/login`, { email, password }); //API login endpoint
       } else {
-        response = await axios.post(`${API_URL}/signup`, { email, password }); //API signup endpoint
+        response = await axios.post(`${API_URL}/user/register`, { email, password }); //API signup endpoint
       }
 
       console.log(response.data); // Handle success (e.g., store token, navigate)
