@@ -1,15 +1,8 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import axios from 'axios'; // Import axios for API requests
+import axios from 'axios';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+
+const API_URL = 'http://localhost:4000';
 
 const AuthScreen = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,109 +10,84 @@ const AuthScreen = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const API_URL = 'https://4000-idx-cryptodrive-1741678141664.cluster-nx3nmmkbnfe54q3dd4pfbgilpc.cloudworkstations.dev'; // Replace with your API endpoint
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleAuth = async () => {
+  const handleSubmit = async () => {
     setError('');
+    setIsSubmitting(true);
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
-      return;
-    }
-
-    if (!email.includes('@')) {
-      setError('Please enter a valid email.');
-      return;
-    }
-
-    if (!isLogin && password !== confirmPassword) {
-      setError('Passwords do not match.');
+    if (!email || !password || (!isLogin && password !== confirmPassword)) {
+      setError('Please fill in all fields correctly.');
+      setIsSubmitting(false);
       return;
     }
 
     try {
-      let response;
-      if (isLogin) {
-        response = await axios.post(`${API_URL}/user/login`, { email, password }); //API login endpoint
-      } else {
-        response = await axios.post(`${API_URL}/user/register`, { email, password }); //API signup endpoint
-      }
-
-      console.log(response.data); // Handle success (e.g., store token, navigate)
-      //handle success here, store token, navigate, etc.
-
-      // Clear form
-      setEmail('');
-      setPassword('');
-      setConfirmPassword('');
-    } catch (err) {
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message); // Display error message from the API
-      } else {
-        setError('An error occurred. Please try again.');
-      }
-      console.error('Authentication error:', err);
+      const { data } = await axios.post(`${API_URL}/user/${isLogin ? 'login' : 'register'}`);
+      console.log(data);
+    } catch (error) {
+      const message = error.response?.data?.message || 'An error occurred. Please try again.';
+      setError(message);
+      console.error('Authentication error:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
-        <Text style={styles.title}>{isLogin ? 'Login' : 'Signup'}</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>{isLogin ? 'Login' : 'Signup'}</Text>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
 
+      <TextInput
+        style={styles.input}
+        autoCapitalize="none"
+        keyboardType="email-address"
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+      />
+
+      <TextInput
+        style={styles.input}
+        secureTextEntry
+        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+      />
+
+      {!isLogin && (
         <TextInput
           style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
           secureTextEntry
+          placeholder="Confirm password"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
         />
+      )}
 
-        {!isLogin && (
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm Password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-          />
-        )}
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleSubmit}
+        disabled={isSubmitting}
+      >
+        <Text style={styles.buttonText}>{isLogin ? 'Login' : 'Signup'}</Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button} onPress={handleAuth}>
-          <Text style={styles.buttonText}>{isLogin ? 'Login' : 'Signup'}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.switchButton}
-          onPress={() => setIsLogin(!isLogin)}
-        >
-          <Text style={styles.switchText}>
-            {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Login'}
-          </Text>
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      <TouchableOpacity
+        style={styles.switchButton}
+        onPress={() => setIsLogin(!isLogin)}
+      >
+        <Text style={styles.switchText}>
+          {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Login'}
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
   container: {
     flex: 1,
     justifyContent: 'center',
@@ -132,24 +100,27 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   input: {
-    height: 50,
-    borderColor: '#ccc',
-    borderWidth: 1,
+    backgroundColor: '#f4f4f4',
     borderRadius: 8,
-    paddingHorizontal: 10,
-    marginBottom: 15,
-    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginBottom: 16,
+  },
+  error: {
+    color: '#f44336',
+    marginBottom: 16,
   },
   button: {
     backgroundColor: '#007AFF',
-    padding: 15,
     borderRadius: 8,
-    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    marginBottom: 16,
   },
   buttonText: {
-    color: 'white',
+    color: '#fff',
     fontSize: 18,
-    fontWeight: 'bold',
+    textAlign: 'center',
   },
   switchButton: {
     marginTop: 20,
@@ -158,11 +129,7 @@ const styles = StyleSheet.create({
   switchText: {
     color: '#007AFF',
   },
-  error: {
-    color: 'red',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
 });
 
 export default AuthScreen;
+
