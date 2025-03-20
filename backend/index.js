@@ -14,7 +14,7 @@ app.use(express.json());
 app.use('/coins', CoinRouter);
 app.use('/user', UserRouter);
 
-mongoose.connect(`mongodb://localhost:27017/crypto`).then(() => {
+mongoose.connect(`${process.env.MONGODB_URI}/crypto`).then(() => {
     console.log('DB Connected')
     app.listen(4000, () => {
         console.log(`Server running on port ${4000}`)

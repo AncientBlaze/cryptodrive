@@ -1,4 +1,5 @@
 import User from "../models/User.model.js";
+import bcrypt from "bcryptjs";
 
 const insertUser = async (req, res) => {
   const { name, email, password, phone, dateOfBirth, address, coin } = req.body;
@@ -81,7 +82,7 @@ const login = async (req, res) => {
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
-    const passwordMatch = await bcrypt.compare(password, user.password);
+    const passwordMatch = await bcryptjs.compare(password, user.password);
     if (!passwordMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -94,15 +95,19 @@ const login = async (req, res) => {
 };
 const registration = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const hashedPassword = bcrypt.hash(password, 10);
-    const user = new User({ email, password: hashedPassword });
+    const { username, email, password } = req.body;
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10); // 10 is the salt rounds
+
+    const user = new User({ username, email, password: hashedPassword });
     await user.save();
     res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-}
+};
+
 const updateAuthentication = async (req, res) => {
   const { id } = req.body;
 

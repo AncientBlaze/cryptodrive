@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Text, View, Image, StyleSheet, FlatList, ActivityIndicator } from "react-native";
 
-const index = () => {
+const Wallet = () => {
   const [isLoading, setLoading] = useState(true);
   const [data, setData] = useState([]);
 
@@ -147,4 +147,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default index;
+export default Wallet;

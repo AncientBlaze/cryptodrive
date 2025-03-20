@@ -1,88 +1,79 @@
-import React, { useState } from 'react';
 import axios from 'axios';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 
-const API_URL = 'http://localhost:4000';
+const requestURL = "https://4000-idx-cryptodrive-1741678141664.cluster-nx3nmmkbnfe54q3dd4pfbgilpc.cloudworkstations.dev";
 
-const AuthScreen = () => {
-  const [isLogin, setIsLogin] = useState(true);
+axios.get(`${requestURL}/coins/get`)
+  .then(response => {
+    console.log(response.data);
+  })
+  .catch(error => {
+    console.error(error);
+  });
+
+const Register = () => {
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async () => {
-    setError('');
-    setIsSubmitting(true);
-
-    if (!email || !password || (!isLogin && password !== confirmPassword)) {
-      setError('Please fill in all fields correctly.');
-      setIsSubmitting(false);
+  const handleRegister = async () => {
+    // Basic validation to ensure no field is empty
+    if (!username || !email || !password) {
+      Alert.alert('Validation Error', 'All fields are required!');
       return;
     }
 
     try {
-      const { data } = await axios.post(`${API_URL}/user/${isLogin ? 'login' : 'register'}`);
-      console.log(data);
+      const response = await axios.post(`${requestURL}/user/register`, {
+        username,
+        email,
+        password,
+      });
+      console.log(response);
+      if (response.status === 200) {
+        // Successful registration
+        Alert.alert('Registration Successful', 'You have successfully registered.');
+        setUsername('');
+        setEmail('');
+        setPassword('');
+      } else {
+        // If the status code is not 200, show a failure message
+        Alert.alert('Registration Failed', 'An error occurred during registration.');
+      }
     } catch (error) {
-      const message = error.response?.data?.message || 'An error occurred. Please try again.';
-      setError(message);
-      console.error('Authentication error:', error);
-    } finally {
-      setIsSubmitting(false);
+      // Catch and handle any errors from the Axios request
+      console.error('Registration Error:', error);
+      Alert.alert('Registration Failed', 'An error occurred during registration.');
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{isLogin ? 'Login' : 'Signup'}</Text>
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <Text style={styles.header}>Register</Text>
 
       <TextInput
         style={styles.input}
-        autoCapitalize="none"
-        keyboardType="email-address"
+        placeholder="Username"
+        value={username}
+        onChangeText={setUsername}
+      />
+      <TextInput
+        style={styles.input}
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
+        keyboardType="email-address"
       />
-
       <TextInput
         style={styles.input}
-        secureTextEntry
         placeholder="Password"
         value={password}
         onChangeText={setPassword}
+        secureTextEntry
       />
 
-      {!isLogin && (
-        <TextInput
-          style={styles.input}
-          secureTextEntry
-          placeholder="Confirm password"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-        />
-      )}
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleSubmit}
-        disabled={isSubmitting}
-      >
-        <Text style={styles.buttonText}>{isLogin ? 'Login' : 'Signup'}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.switchButton}
-        onPress={() => setIsLogin(!isLogin)}
-      >
-        <Text style={styles.switchText}>
-          {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Login'}
-        </Text>
-      </TouchableOpacity>
+      <Button title="Register" onPress={handleRegister} />
     </View>
   );
 };
@@ -92,44 +83,23 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 20,
+    backgroundColor: '#f0f0f0',
   },
-  title: {
+  header: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 30,
     textAlign: 'center',
   },
   input: {
-    backgroundColor: '#f4f4f4',
+    height: 50,
+    borderColor: '#ccc',
+    borderWidth: 1,
     borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginBottom: 16,
-  },
-  error: {
-    color: '#f44336',
-    marginBottom: 16,
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    marginBottom: 16,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    textAlign: 'center',
-  },
-  switchButton: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  switchText: {
-    color: '#007AFF',
+    marginBottom: 15,
+    paddingLeft: 10,
+    fontSize: 16,
   },
 });
 
-export default AuthScreen;
-
+export default Register;
