@@ -1,14 +1,14 @@
 import User from "../models/User.model.js";
-import bcrypt from "bcryptjs";
-
+import bcryptjs from "bcryptjs";
 const insertUser = async (req, res) => {
-  const { name, email, password, phone, dateOfBirth, address, coin } = req.body;
+  const { name, email, password, phone, dateOfBirth, country, address, coin } = req.body;
   const user = {
     name,
     email,
     password,
     phone,
     dateOfBirth,
+    country,
     address,
     coin,
   };
@@ -26,6 +26,7 @@ const insertUser = async (req, res) => {
     });
   }
 };
+
 const updateCoin = async (req, res) => {
   const { id, coin } = req.body;
 
@@ -45,6 +46,7 @@ const updateCoin = async (req, res) => {
     });
   }
 };
+
 const getUser = async (req, res) => {
   try {
     const response = await User.find();
@@ -59,11 +61,12 @@ const getUser = async (req, res) => {
     });
   }
 };
+
 const getUserByName = async (req, res) => {
-  const { name } = req.body;
+  const { username } = req.body;
 
   try {
-    const response = await User.find({ name });
+    const response = await User.find({ username });
     res.send({
       success: true,
       data: response,
@@ -75,36 +78,60 @@ const getUserByName = async (req, res) => {
     });
   }
 };
+
+
 const login = async (req, res) => {
   try {
-    const { username, password } = req.body;
-    const user = await User.findOne({ username });
+    const { username, email, password } = req.body;
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.json(
+        { success: false, message: "User not found" }
+      )
     }
-    const passwordMatch = await bcryptjs.compare(password, user.password);
-    if (!passwordMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    if (user.password !== password) {
+      return res
+        .json({ success: false, message: "Invalid password" });
     }
-
-    res.json({ message: 'Login successful' }); // Simple login success message
-
+    if (user.authorized == false) {
+      return res.json({
+        status: false,
+        message: "Unauthorized User"
+      })
+    }
+    if (user.email == email && user.password == password) {
+      return res.json({
+        success: true,
+        logIn: "Success",
+        data: user
+      })
+    }
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.send({ success: false, message: error.message });
   }
 };
-const registration = async (req, res) => {
+
+const register = async (req, res) => {
+  const { username, email, password } = req.body;
+  console.log(username, email, password);
   try {
-    const { username, email, password } = req.body;
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ success: false, message: "Email already in use." });
+    }
 
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10); // 10 is the salt rounds
+    const hashedPassword = await bcryptjs.hash(password, 10);
 
-    const user = new User({ username, email, password: hashedPassword });
-    await user.save();
-    res.status(201).json({ message: 'User registered successfully' });
+    const user = new User({
+      username,
+      email,
+      password: hashedPassword,
+    });
+
+    const response = await user.save();
+    res.status(201).json({ success: true, data: response });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -125,5 +152,5 @@ const updateAuthentication = async (req, res) => {
   }
 }
 
-export { insertUser, updateCoin, getUser, getUserByName, login, registration, updateAuthentication };
+export { insertUser, updateCoin, getUser, getUserByName, login, register, updateAuthentication };
 

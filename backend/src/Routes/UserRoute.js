@@ -7,9 +7,9 @@ import {
     getUser,
     getUserByName,
     login,
-    registration,
+    register,
     updateAuthentication
-} from '../controllers/UserControllers.js';
+} from "../controllers/UserControllers.js";
 
 const route = express.Router();
 
@@ -18,7 +18,7 @@ route.put('/updateCoin', updateCoin);
 route.get('/get', getUser);
 route.post('/getByName', getUserByName);
 route.post('/login', login);
+route.post("/register", register);
 route.put('/updateAuthentication', updateAuthentication);
-route.post("/register", registration)
 
 export default route;

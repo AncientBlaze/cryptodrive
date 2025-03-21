@@ -19,12 +19,16 @@ const insert = async (req, res) => {
 
 const getCoin = async (req, res) => {
     try {
-        const num = req.body;
-        console.log(num);
         const response = await Coin.find();
-        res.send("Request Went")
+        res.send({
+            success: true,
+            data: response
+        })
     } catch (error) {
-        res.send(error)
+        res.send({
+            success: false,
+            data: error
+        })
     }
 }
 

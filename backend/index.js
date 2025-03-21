@@ -14,10 +14,10 @@ app.use(express.json());
 app.use('/coins', CoinRouter);
 app.use('/user', UserRouter);
 
-mongoose.connect(`${process.env.MONGODB_URI}/crypto`).then(() => {
+mongoose.connect(process.env.MONGO_URL).then(() => {
     console.log('DB Connected')
-    app.listen(4000, () => {
-        console.log(`Server running on port ${4000}`)
+    app.listen(process.env.port, () => {
+        console.log(`Server running on port ${MONGO_URL}:${process.env.port}`)
     })
 }).catch((err) => {
     console.log(err)

@@ -1,105 +1,113 @@
-import axios from 'axios';
+import { StyleSheet, TextInput, TouchableOpacity, Text, View, Alert } from 'react-native';
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import axios from 'axios';
 
-const requestURL = "https://4000-idx-cryptodrive-1741678141664.cluster-nx3nmmkbnfe54q3dd4pfbgilpc.cloudworkstations.dev";
-
-axios.get(`${requestURL}/coins/get`)
-  .then(response => {
-    console.log(response.data);
-  })
-  .catch(error => {
-    console.error(error);
-  });
-
-const Register = () => {
-  const [username, setUsername] = useState('');
+export default function App() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
-    // Basic validation to ensure no field is empty
-    if (!username || !email || !password) {
-      Alert.alert('Validation Error', 'All fields are required!');
+    if (!name || !email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
+    if (!validateEmail(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      const response = await axios.post(`${requestURL}/user/register`, {
-        username,
+      const res = await axios.post('http://localhost:3000/user/register', {
+        username: name,
         email,
         password,
       });
-      console.log(response);
-      if (response.status === 200) {
-        // Successful registration
-        Alert.alert('Registration Successful', 'You have successfully registered.');
-        setUsername('');
-        setEmail('');
-        setPassword('');
-      } else {
-        // If the status code is not 200, show a failure message
-        Alert.alert('Registration Failed', 'An error occurred during registration.');
-      }
+
+      const data = res.data;
+      setLoading(false);
+      return data;
     } catch (error) {
-      // Catch and handle any errors from the Axios request
-      console.error('Registration Error:', error);
-      Alert.alert('Registration Failed', 'An error occurred during registration.');
+      setLoading(false);
+      Alert.alert('Error', error.message);
     }
+  };
+
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(String(email).toLowerCase());
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Register</Text>
-
       <TextInput
         style={styles.input}
-        placeholder="Username"
-        value={username}
-        onChangeText={setUsername}
+        value={name}
+        onChangeText={setName}
+        placeholder="Name"
+        placeholderTextColor="#777"
+        name="username"
       />
       <TextInput
         style={styles.input}
-        placeholder="Email"
         value={email}
         onChangeText={setEmail}
+        placeholder="Email"
         keyboardType="email-address"
+        placeholderTextColor="#777"
+        name="email"
       />
       <TextInput
         style={styles.input}
-        placeholder="Password"
         value={password}
         onChangeText={setPassword}
+        placeholder="Password"
         secureTextEntry
+        placeholderTextColor="#777"
+        name="password"
       />
-
-      <Button title="Register" onPress={handleRegister} />
+      <TouchableOpacity
+        style={styles.buttonStyles}
+        onPress={handleRegister}
+        disabled={loading}
+      >
+        <Text style={styles.Text}>{loading ? 'Registering...' : 'Register'}</Text>
+      </TouchableOpacity>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
     padding: 20,
-    backgroundColor: '#f0f0f0',
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 30,
-    textAlign: 'center',
   },
   input: {
-    height: 50,
+    height: 40,
     borderColor: '#ccc',
     borderWidth: 1,
-    borderRadius: 8,
-    marginBottom: 15,
-    paddingLeft: 10,
-    fontSize: 16,
+    marginBottom: 20,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+    backgroundColor: '#fff',
+    width: '100%',
+  },
+  buttonStyles: {
+    backgroundColor: '#4f83cc',
+    padding: 10,
+    borderRadius: 5,
+    width: '100%',
+    alignItems: 'center',
+  },
+  Text: {
+    color: '#fff',
+    textAlign: 'center',
   },
 });
-
-export default Register;
