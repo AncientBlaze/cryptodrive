@@ -1,11 +1,28 @@
 import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function RootLayout() {
     return (
         <Tabs>
-            <Tabs.Screen name="wallet" options={{ headerShown: false }} />
-            <Tabs.Screen name="about" options={{ headerShown: false }} />
+            <Tabs.Screen 
+                name="wallet" 
+                options={{ 
+                    headerShown: false,
+                    tabBarIcon: ({ color, size }) => (
+                        <MaterialIcons name="account-balance-wallet" color={color} size={size} />
+                    )
+                }} 
+            />
+            <Tabs.Screen 
+                name="setting" 
+                options={{ 
+                    headerShown: false,
+                    tabBarIcon: ({ color, size }) => (
+                        <MaterialIcons name="settings" color={color} size={size} />
+                    )
+                }} 
+            />
         </Tabs>
     );
 }
@@ -25,3 +42,4 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
 });
+

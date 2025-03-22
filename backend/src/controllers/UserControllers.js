@@ -79,38 +79,56 @@ const getUserByName = async (req, res) => {
   }
 };
 
-
 const login = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { email, password } = req.body;
+
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required"
+      });
+    }
+
     const user = await User.findOne({ email });
+
     if (!user) {
-      return res.json(
-        { success: false, message: "User not found" }
-      )
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials"
+      });
     }
-    if (user.password !== password) {
-      return res
-        .json({ success: false, message: "Invalid password" });
+
+    // Compare hashed password
+    const isPasswordValid = await bcryptjs.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials"
+      });
     }
-    if (user.authorized == false) {
-      return res.json({
-        status: false,
-        message: "Unauthorized User"
-      })
-    }
-    if (user.email == email && user.password == password) {
-      return res.json({
-        success: true,
-        logIn: "Success",
-        data: user
-      })
-    }
+
+    // Login successful
+    return res.json({
+      success: true,
+      message: "Login successful",
+      data: {
+        id: user._id,
+        email: user.email,
+        // Include other non-sensitive user data as needed
+      }
+    });
+
   } catch (error) {
-    res.send({ success: false, message: error.message });
+    console.error("Login error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
   }
 };
-
 const register = async (req, res) => {
   const { username, email, password } = req.body;
   console.log(username, email, password);

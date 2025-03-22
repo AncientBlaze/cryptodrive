@@ -1,113 +1,93 @@
-import { StyleSheet, TextInput, TouchableOpacity, Text, View, Alert } from 'react-native';
-import React, { useState } from 'react';
-import axios from 'axios';
+import { Link } from 'expo-router';
+import React from 'react';
+import { TouchableOpacity, StyleSheet, View, ImageBackground, Image, Text, StatusBar, } from 'react-native';
 
-export default function App() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleRegister = async () => {
-    if (!name || !email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const res = await axios.post('http://localhost:3000/user/register', {
-        username: name,
-        email,
-        password,
-      });
-
-      const data = res.data;
-      setLoading(false);
-      return data;
-    } catch (error) {
-      setLoading(false);
-      Alert.alert('Error', error.message);
-    }
-  };
-
-  const validateEmail = (email) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(String(email).toLowerCase());
-  };
-
-  return (
-    <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        value={name}
-        onChangeText={setName}
-        placeholder="Name"
-        placeholderTextColor="#777"
-        name="username"
-      />
-      <TextInput
-        style={styles.input}
-        value={email}
-        onChangeText={setEmail}
-        placeholder="Email"
-        keyboardType="email-address"
-        placeholderTextColor="#777"
-        name="email"
-      />
-      <TextInput
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
-        placeholder="Password"
-        secureTextEntry
-        placeholderTextColor="#777"
-        name="password"
-      />
-      <TouchableOpacity
-        style={styles.buttonStyles}
-        onPress={handleRegister}
-        disabled={loading}
-      >
-        <Text style={styles.Text}>{loading ? 'Registering...' : 'Register'}</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
+const Index = () => (
+  <View style={styles.container}>
+    <StatusBar barStyle={'light-content'} backgroundColor={'#0D0D0D'} />
+    <ImageBackground source={require("../assets/images/bg-Dark.png")} style={styles.background}>
+      <View style={styles.imageContainer}>
+        <Image source={require("../assets/images/hero_image.png")} />
+        <Text style={styles.text}>Discover the world of cryptocurrency</Text>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.loginButton}>
+            <Link href="/login">
+              <Text style={styles.loginText}>Login</Text>
+            </Link>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.signUpButton}>
+            <Link href="/register">
+              <Text style={styles.buttonText}>Sign Up</Text>
+            </Link>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </ImageBackground>
+  </View>
+);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 20,
   },
-  input: {
-    height: 40,
-    borderColor: '#ccc',
+  background: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#0D0D0D', // Darker background color
+  },
+  imageContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+  },
+  text: {
+    color: "#F8F6FF",
+    fontSize: 28,
+    fontWeight: "bold",
+    textAlign: "center",
+    width: 327,
+    marginTop: 100,
+  },
+  buttonContainer: {
+    marginTop: 20,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+  },
+  loginButton: {
+    marginTop: 20,
     borderWidth: 1,
-    marginBottom: 20,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-    backgroundColor: '#fff',
-    width: '100%',
-  },
-  buttonStyles: {
-    backgroundColor: '#4f83cc',
-    padding: 10,
-    borderRadius: 5,
-    width: '100%',
+    borderColor: '#F8F6FF',
+    backgroundColor: "transparent",
+    borderRadius: 50,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     alignItems: 'center',
   },
-  Text: {
-    color: '#fff',
-    textAlign: 'center',
+  loginText: {
+    color: '#F8F6FF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  signUpButton: {
+    marginTop: 20,
+    borderWidth: 2,
+    borderColor: '#F8F6FF',
+    backgroundColor: "#F8F6FF",
+    borderRadius: 50,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#0D0D0D',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
+
+export default Index;
+
