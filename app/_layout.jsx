@@ -15,6 +15,7 @@ export default function RootLayout() {
       <Stack.Screen name="gotokyc" options={{ headerShown: false }} />
       <Stack.Screen name="KYCPage" options={{ headerShown: false }} />
       <Stack.Screen name='+not-found' options={{ headerShown: false }} />
+      <Stack.Screen name='profile' options={{ headerShown: false }} />
     </Stack>
   );
 }

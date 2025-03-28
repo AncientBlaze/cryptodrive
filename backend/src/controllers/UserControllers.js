@@ -47,9 +47,11 @@ const updateCoin = async (req, res) => {
   }
 };
 
-const getUser = async (req, res) => {
+const getloggedUser = async (req, res) => {
+  const { id } = req.params;
+  console.log(id);
   try {
-    const response = await User.find();
+    const response = await User.find({ _id: id });
     res.send({
       success: true,
       data: response,
@@ -59,8 +61,8 @@ const getUser = async (req, res) => {
       success: false,
       data: error,
     });
-  }
-};
+  };
+}
 
 const getUserByName = async (req, res) => {
   const { username } = req.body;
@@ -82,8 +84,6 @@ const getUserByName = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Validate input
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -96,11 +96,10 @@ const login = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials"
+        message: "User not found"
       });
     }
 
-    // Compare hashed password
     const isPasswordValid = await bcryptjs.compare(password, user.password);
 
     if (!isPasswordValid) {
@@ -110,14 +109,12 @@ const login = async (req, res) => {
       });
     }
 
-    // Login successful
     return res.json({
       success: true,
       message: "Login successful",
       data: {
         id: user._id,
         email: user.email,
-        // Include other non-sensitive user data as needed
       }
     });
 
@@ -129,27 +126,60 @@ const login = async (req, res) => {
     });
   }
 };
+
 const register = async (req, res) => {
-  const { username, email, password } = req.body;
-  console.log(username, email, password);
   try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(409).json({ success: false, message: "Email already in use." });
+    const { username, email, password } = req.body;
+
+    // Validate input
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required"
+      });
     }
 
-    const hashedPassword = await bcryptjs.hash(password, 10);
-
-    const user = new User({
-      username,
-      email,
-      password: hashedPassword,
+    // Check for existing user
+    const existingUser = await User.findOne({
+      $or: [{ email }, { username }]
     });
 
-    const response = await user.save();
-    res.status(201).json({ success: true, data: response });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "Username or email already exists"
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await bcryptjs.hash(password, 10);
+
+    // Create new user
+    const newUser = new User({
+      username,
+      email,
+      password: hashedPassword
+    });
+
+    // Save user
+    const savedUser = await newUser.save();
+
+    // Return response without sensitive data
+    res.status(201).json({
+      success: true,
+      data: {
+        _id: savedUser._id,
+        username: savedUser.username,
+        email: savedUser.email
+      }
+    });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Registration error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
   }
 };
 
@@ -169,6 +199,21 @@ const updateAuthentication = async (req, res) => {
     })
   }
 }
+const validateKyc = async (req, res) => {
+  const { id } = req.params;
+  const { name, email, password, phone, dateOfBirth, country, address } = req.body;
+  try {
+    const response = await User.updateOne({ _id: id }, { name, email, password, phone, dateOfBirth, country, address });
+    res.send({
+      status: true,
+      data: response
+    })
+  } catch (error) {
+    res.send({
+      status: false,
+      error: error
+    })
+  }
+}
 
-export { insertUser, updateCoin, getUser, getUserByName, login, register, updateAuthentication };
-
+export { insertUser, updateCoin, getloggedUser, getUserByName, login, register, updateAuthentication, validateKyc };

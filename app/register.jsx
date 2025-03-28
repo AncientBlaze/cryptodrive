@@ -1,30 +1,46 @@
-import React from "react";
-import { SafeAreaView, ScrollView, ImageBackground, Text, StyleSheet, View, StatusBar } from "react-native";
-import { TextInput, Button } from "react-native-paper";
-import { Formik } from "formik";
-import * as Yup from "yup";
-import axios from "axios";
-import { useNavigation } from "@react-navigation/native";
+import React from 'react';
+import { SafeAreaView, ScrollView, ImageBackground, Text, StyleSheet, View, StatusBar, ToastAndroid } from 'react-native';
+import { TextInput, Button } from 'react-native-paper';
+import { Formik } from 'formik';
+import * as Yup from 'yup';
+import axios from 'axios';
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const validationSchema = Yup.object().shape({
-  email: Yup.string().email("Invalid email").required("Required"),
+  username: Yup.string()
+    .min(3, 'Username must be at least 3 characters')
+    .required('Username is required'),
+  email: Yup.string()
+    .email('Invalid email')
+    .required('Email is required'),
   password: Yup.string()
-    .min(6, "Too short!")
-    .required("Required")
+    .min(6, 'Password must be at least 6 characters')
+    .required('Password is required')
 });
 
 const RegisterPage = () => {
+  const showToast = (message) => {
+    ToastAndroid.show(message, ToastAndroid.LONG);
+  }
   const navigation = useNavigation();
-  const handleSubmit = (values) => {
-    axios
-      .post("https://really-classic-moray.ngrok-free.app/user/register", values)
-      .then((response) => {
-        console.log(response.data);
-        navigation.navigate("gotokyc");
-      })
-      .catch((error) => {
-        console.log("Registration error:", error.response?.data);
-      });
+
+  const handleSubmit = async (values) => {
+    try {
+      const response = await axios.post(
+        'https://really-classic-moray.ngrok-free.app/user/register',
+        values
+      );
+
+      const userData = await AsyncStorage.setItem('userData', JSON.stringify(response.data));
+      console.log(userData);
+      
+      navigation.navigate('gotokyc');
+    } catch (error) {
+      console.log('Registration error:', error.response?.data);
+      const errorMessage = error.response?.data?.message || 'Registration failed';
+      showToast(errorMessage);
+    }
   };
 
   return (
@@ -33,10 +49,10 @@ const RegisterPage = () => {
         source={require("../assets/images/bg-Dark.png")}
         style={styles.background}
       >
-        <StatusBar barStyle={'light-content'} backgroundColor={'#0D0D0D'} />
+        <StatusBar barStyle="light-content" backgroundColor="#0D0D0D" />
         <ScrollView contentContainerStyle={styles.scrollView}>
           <Formik
-            initialValues={{ email: "", password: "" }}
+            initialValues={{ username: '', email: '', password: '' }}
             onSubmit={handleSubmit}
             validationSchema={validationSchema}
           >
@@ -48,32 +64,37 @@ const RegisterPage = () => {
                     label="Username"
                     mode="flat"
                     style={styles.input}
-                    onChangeText={handleChange("username")}
-                    onBlur={handleBlur("username")}
+                    onChangeText={handleChange('username')}
+                    onBlur={handleBlur('username')}
                     value={values.username}
                     error={touched.username && !!errors.username}
+                    autoCapitalize="none"
                   />
                   {touched.username && errors.username && (
                     <Text style={styles.errorText}>{errors.username}</Text>
                   )}
+
                   <TextInput
                     label="Email"
                     mode="flat"
                     style={styles.input}
-                    onChangeText={handleChange("email")}
-                    onBlur={handleBlur("email")}
+                    onChangeText={handleChange('email')}
+                    onBlur={handleBlur('email')}
                     value={values.email}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
                     error={touched.email && !!errors.email}
                   />
                   {touched.email && errors.email && (
                     <Text style={styles.errorText}>{errors.email}</Text>
                   )}
+
                   <TextInput
                     label="Password"
                     mode="flat"
                     style={styles.input}
-                    onChangeText={handleChange("password")}
-                    onBlur={handleBlur("password")}
+                    onChangeText={handleChange('password')}
+                    onBlur={handleBlur('password')}
                     value={values.password}
                     secureTextEntry
                     error={touched.password && !!errors.password}
@@ -85,10 +106,10 @@ const RegisterPage = () => {
                   <Button
                     mode="contained"
                     onPress={handleSubmit}
-                    style={[styles.button, { marginBottom: 16 }]}
+                    style={styles.button}
                     labelStyle={styles.buttonLabel}
                   >
-                    Sign up
+                    Sign Up
                   </Button>
 
                   <Button

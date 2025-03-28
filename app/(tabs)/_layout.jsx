@@ -14,7 +14,7 @@ export default function RootLayout() {
                     )
                 }} 
             />
-            <Tabs.Screen 
+            <Tabs.Screen
                 name="setting" 
                 options={{ 
                     headerShown: false,

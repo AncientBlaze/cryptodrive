@@ -12,12 +12,8 @@ app.use(cors());
 app.use(express.json());
 app.use('/coins', CoinRouter);
 app.use('/user', UserRouter);
-app.use("/", (req, res) => {
-    res.status(200).send("Hello World!");
-    res.end();
-});
 
-mongoose.connect(process.env.localhosturl).then(() => {
+mongoose.connect(process.env.Localhosturl).then(() => {
     console.log('DB Connected');
     app.listen(process.env.port, () => {
         console.log(`Server is running on port ${process.env.port}`);

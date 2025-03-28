@@ -2,9 +2,10 @@ import express from "express";
 
 
 import {
+    validateKyc,
     insertUser,
     updateCoin,
-    getUser,
+    getloggedUser,
     getUserByName,
     login,
     register,
@@ -13,9 +14,10 @@ import {
 
 const route = express.Router();
 
-route.post('/insert', insertUser);
+route.put('/insert', insertUser);
+route.put('/:id/kyc', validateKyc);
 route.put('/updateCoin', updateCoin);
-route.get('/get', getUser);
+route.get('/get/:id', getloggedUser);
 route.post('/getByName', getUserByName);
 route.post('/login', login);
 route.post("/register", register);

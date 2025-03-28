@@ -1,300 +1,198 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, ActivityIndicator } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { Formik } from 'formik';
+import * as Yup from 'yup';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ImageBackground, ActivityIndicator, ToastAndroid } from 'react-native';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import toast from 'react-hot-toast/headless';
 
-const KYCPage = () => {
-    const [formData, setFormData] = useState({
-        fullName: '',
-        dob: '',
-        address: '',
-        city: '',
+const KYC_VALIDATION_SCHEMA = Yup.object().shape({
+  fullName: Yup.string().required('Full name is required'),
+  phone: Yup.string()
+    .matches(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/, 'Invalid phone number')
+    .required('Phone number is required'),
+  dateOfBirth: Yup.string()
+    .required('Date of birth is required')
+    .matches(
+      /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/,
+      'Invalid format (DD/MM/YYYY)'
+    )
+    .test('valid-date', 'Invalid date', (value) => {
+      const [day, month, year] = value.split('/');
+      const date = new Date(year, month - 1, day);
+      return (
+        date.getDate() === Number(day) &&
+        date.getMonth() === Number(month) - 1 &&
+        date.getFullYear() === Number(year)
+      );
+    })
+    .test('not-future', 'Cannot be in the future', (value) => {
+      const [day, month, year] = value.split('/');
+      const date = new Date(year, month - 1, day);
+      return date <= new Date();
+    }),
+  country: Yup.string().required('Country is required'),
+  address: Yup.string().required('Address is required'),
+});
+
+const KycForm = () => {
+  const showToast = (message) => {
+    ToastAndroid.show(message, ToastAndroid.LONG);
+  }
+  const handleSubmit = async (values) => {
+    const userId = await AsyncStorage.getItem('userData');
+    console.log(userId);
+    
+    try {
+      if (!userId) {
+        toast.error('User ID not found in AsyncStorage');
+        throw new Error('User ID not found in AsyncStorage');
+      }
+      const response = await axios.post(`https://really-classic-moray.ngrok-free.app/user/${userId}/kyc`, values);
+      showToast(`Success, ${response.data.message}`);
+
+    } catch (error) {
+      showToast(`Error, ${error}`);
+    }
+  }
+  return (
+    <ImageBackground
+            source={require("../assets/images/bg-Dark.png")}
+            style={styles.background}
+          >
+    <Formik
+      initialValues={{
+        username: '',
+        phone: '',
+        dateOfBirth: '',
         country: '',
-        zipCode: '',
-        documentType: 'passport',
-        documentFront: null,
-        documentBack: null,
-        selfie: null,
-    });
-
-    const [errors, setErrors] = useState({});
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const validateForm = () => {
-        let newErrors = {};
-
-        if (!formData.fullName) newErrors.fullName = 'Full name is required';
-        if (!formData.dob) newErrors.dob = 'Date of birth is required';
-        if (!formData.address) newErrors.address = 'Address is required';
-        if (!formData.city) newErrors.city = 'City is required';
-        if (!formData.country) newErrors.country = 'Country is required';
-        if (!formData.zipCode) newErrors.zipCode = 'Zip code is required';
-        if (!formData.documentFront) newErrors.documentFront = 'Document front is required';
-        if (!formData.selfie) newErrors.selfie = 'Selfie is required';
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    const handleSubmit = () => {
-        if (!validateForm()) return;
-
-        setIsSubmitting(true);
-        // Simulate API call
-        setTimeout(() => {
-            setIsSubmitting(false);
-            Alert.alert('Success', 'KYC submitted successfully!');
-        }, 2000);
-    };
-
-    const handleDocumentUpload = (type) => {
-        // In real implementation, use ImagePicker or DocumentPicker
-        Alert.alert('Info', 'Please install react-native-image-picker for actual document upload');
-    };
-
-    return (
-        <ScrollView style={styles.container}>
-            <Text style={styles.header}>Identity Verification</Text>
-            <Text style={styles.subHeader}>Complete your KYC verification</Text>
-
-            {/* Personal Information */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Personal Information</Text>
-
-                <InputField
-                    label="Full Name"
-                    value={formData.fullName}
-                    onChangeText={(text) => setFormData({ ...formData, fullName: text })}
-                    error={errors.fullName}
-                    icon="person"
-                />
-
-                <InputField
-                    label="Date of Birth (DD/MM/YYYY)"
-                    value={formData.dob}
-                    onChangeText={(text) => setFormData({ ...formData, dob: text })}
-                    error={errors.dob}
-                    icon="event"
-                />
-
-                <InputField
-                    label="Address"
-                    value={formData.address}
-                    onChangeText={(text) => setFormData({ ...formData, address: text })}
-                    error={errors.address}
-                    icon="home"
-                />
-
-                <View style={styles.row}>
-                    <InputField
-                        label="City"
-                        value={formData.city}
-                        onChangeText={(text) => setFormData({ ...formData, city: text })}
-                        error={errors.city}
-                        containerStyle={{ flex: 1, marginRight: 10 }}
-                    />
-                    <InputField
-                        label="Zip Code"
-                        value={formData.zipCode}
-                        onChangeText={(text) => setFormData({ ...formData, zipCode: text })}
-                        error={errors.zipCode}
-                        containerStyle={{ flex: 1 }}
-                        keyboardType="numeric"
-                    />
-                </View>
-
-                <InputField
-                    label="Country"
-                    value={formData.country}
-                    onChangeText={(text) => setFormData({ ...formData, country: text })}
-                    error={errors.country}
-                    icon="public"
-                />
-            </View>
-
-            {/* Document Upload */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Document Verification</Text>
-
-                <DocumentUpload
-                    label="Upload Front of Document"
-                    onPress={() => handleDocumentUpload('documentFront')}
-                    image={formData.documentFront}
-                    error={errors.documentFront}
-                />
-
-                <DocumentUpload
-                    label="Upload Back of Document"
-                    onPress={() => handleDocumentUpload('documentBack')}
-                    image={formData.documentBack}
-                />
-
-                <DocumentUpload
-                    label="Upload Selfie with Document"
-                    onPress={() => handleDocumentUpload('selfie')}
-                    image={formData.selfie}
-                    error={errors.selfie}
-                />
-            </View>
-
-            <TouchableOpacity
-                style={styles.submitButton}
-                onPress={handleSubmit}
-                disabled={isSubmitting}
-            >
-                {isSubmitting ? (
-                    <ActivityIndicator color="#fff" />
-                ) : (
-                    <Text style={styles.submitButtonText}>Submit Verification</Text>
-                )}
-            </TouchableOpacity>
-
-            <Text style={styles.disclaimer}>
-                By submitting this form, you agree to our Terms of Service and Privacy Policy
-            </Text>
-        </ScrollView>
-    );
+        address: '',
+      }}
+      validationSchema={KYC_VALIDATION_SCHEMA}
+      onSubmit={handleSubmit}
+    >
+      {({ handleChange, handleBlur, handleSubmit, values, errors, touched, isSubmitting }) => (
+        <View style={styles.container}>
+          <FormField
+            label="Full Legal Name"
+            value={values.fullName}
+            onChangeText={handleChange('fullName')}
+            error={errors.fullName}
+            touched={touched.fullName}
+          />
+          <FormField
+            label="Phone Number"
+            value={values.phone}
+            onChangeText={handleChange('phone')}
+            keyboardType="phone-pad"
+            error={errors.phone}
+            touched={touched.phone}
+          />
+          <FormField
+            label="Date of Birth"
+            value={values.dateOfBirth}
+            onChangeText={handleChange('dateOfBirth')}
+            placeholder="DD/MM/YYYY"
+            error={errors.dateOfBirth}
+            touched={touched.dateOfBirth}
+          />
+          <FormField
+            label="Country of Residence"
+            value={values.country}
+            onChangeText={handleChange('country')}
+            error={errors.country}
+            touched={touched.country}
+          />
+          <FormField
+            label="Full Address"
+            value={values.address}
+            onChangeText={handleChange('address')}
+            multiline
+            numberOfLines={3}
+            error={errors.address}
+            touched={touched.address}
+          />
+          <TouchableOpacity
+            style={styles.submitButton}
+            onPress={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Complete Verification</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
+    </Formik>
+    </ImageBackground>
+  );
 };
 
-const InputField = ({ label, icon, error, containerStyle, ...props }) => (
-    <View style={[styles.inputContainer, containerStyle]}>
-        <Text style={styles.inputLabel}>{label}</Text>
-        <View style={styles.inputWrapper}>
-            <Icon name={icon} size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-                style={styles.input}
-                placeholderTextColor="#999"
-                {...props}
-            />
-        </View>
-        {error && <Text style={styles.errorText}>{error}</Text>}
-    </View>
-);
-
-const DocumentUpload = ({ label, onPress, image, error }) => (
-    <View style={styles.uploadContainer}>
-        <Text style={styles.uploadLabel}>{label}</Text>
-        <TouchableOpacity style={styles.uploadButton} onPress={onPress}>
-            {image ? (
-                <Image source={{ uri: image }} style={styles.uploadImage} />
-            ) : (
-                <Icon name="cloud-upload" size={40} color="#007AFF" />
-            )}
-        </TouchableOpacity>
-        {error && <Text style={styles.errorText}>{error}</Text>}
-    </View>
+const FormField = ({ label, error, touched, ...props }) => (
+  <View style={styles.inputContainer}>
+    <Text style={styles.label}>{label}</Text>
+    <TextInput
+      style={[styles.input, error && touched && styles.errorInput]}
+      placeholderTextColor="#999"
+      {...props}
+    />
+    {touched && error && (
+      <Text style={styles.errorText}>{error}</Text>
+    )}
+  </View>
 );
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#F9F9F9',
-        padding: 20,
-    },
-    header: {
-        fontSize: 28,
-        fontWeight: '800',
-        color: '#333',
-        marginBottom: 8,
-    },
-    subHeader: {
-        fontSize: 16,
-        color: '#666',
-        marginBottom: 30,
-    },
-    section: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 20,
-        marginBottom: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 3,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#333',
-        marginBottom: 20,
-    },
-    inputContainer: {
-        marginBottom: 20,
-    },
-    inputLabel: {
-        color: '#666',
-        fontSize: 14,
-        marginBottom: 8,
-    },
-    inputWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        paddingHorizontal: 12,
-    },
-    inputIcon: {
-        marginRight: 10,
-    },
-    input: {
-        flex: 1,
-        height: 50,
-        color: '#333',
-        fontSize: 16,
-    },
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    uploadContainer: {
-        marginBottom: 25,
-    },
-    uploadLabel: {
-        color: '#666',
-        fontSize: 14,
-        marginBottom: 12,
-    },
-    uploadButton: {
-        height: 150,
-        borderWidth: 2,
-        borderColor: '#007AFF',
-        borderStyle: 'dashed',
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#F8FAFF',
-    },
-    uploadImage: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 10,
-    },
-    submitButton: {
-        backgroundColor: '#007AFF',
-        height: 60,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginVertical: 20,
-    },
-    submitButtonText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: '600',
-    },
-    errorText: {
-        color: '#F44336',
-        fontSize: 12,
-        marginTop: 4,
-    },
-    disclaimer: {
-        color: '#666',
-        fontSize: 12,
-        textAlign: 'center',
-        marginVertical: 20,
-        lineHeight: 18,
-    },
+  background: {
+    flex: 1,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    marginHorizontal: 20,
+    marginVertical: 20,
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    marginBottom: 8,
+    color: '#333',
+    fontWeight: '500',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#333',
+  },
+  errorInput: {
+    borderColor: '#FF3B30',
+  },
+  submitButton: {
+    backgroundColor: '#6339F9',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  errorText: {
+    color: '#FF3B30',
+    fontSize: 12,
+    marginTop: 4,
+  },
 });
 
-export default KYCPage;
+export default KycForm;

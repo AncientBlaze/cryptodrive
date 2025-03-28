@@ -20,7 +20,7 @@ const UserSchema = new mongoose.Schema({
         required: false
     },
     dateOfBirth: {
-        type: String,
+        type: Date,
     },
     country: {
         type: String,
@@ -36,7 +36,7 @@ const UserSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     }
-}, { timestamps: true });
+});
 
 const User = mongoose.model('User', UserSchema);
 

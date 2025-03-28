@@ -1,12 +1,13 @@
+import { useNavigation } from 'expo-router';
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
-const SettingsScreen = ({ navigation }) => {
-  // Temporary state - replace with your actual state management
+const SettingsScreen = () => {
   const [biometricEnabled, setBiometricEnabled] = React.useState(true);
   const [darkMode, setDarkMode] = React.useState(false);
   const [twoFactorAuth, setTwoFactorAuth] = React.useState(false);
+  const navigation = useNavigation();
   const handleLogout = () => {
     navigation.navigate('login');
   }
@@ -17,7 +18,7 @@ const SettingsScreen = ({ navigation }) => {
         {
           icon: 'person',
           title: 'Profile Information',
-          action: () => navigation.navigate('Profile'),
+          action: () => navigation.navigate('profile'),
         },
         {
           icon: 'verified-user',
@@ -150,7 +151,7 @@ const SettingsScreen = ({ navigation }) => {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.header}>Settings</Text>
-      
+
       {settingsSections.map((section, index) => (
         <View key={index} style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>{section.title}</Text>

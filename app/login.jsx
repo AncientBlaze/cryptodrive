@@ -1,34 +1,56 @@
 import React from "react";
-import { SafeAreaView, ScrollView, ImageBackground, Text, StyleSheet, View, StatusBar } from "react-native";
+import { 
+  SafeAreaView, 
+  ScrollView, 
+  ImageBackground, 
+  Text, 
+  StyleSheet, 
+  View, 
+  StatusBar,
+  ToastAndroid 
+} from "react-native";
 import { TextInput, Button } from "react-native-paper";
 import { Formik } from "formik";
 import * as Yup from "yup";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const validationSchema = Yup.object().shape({
   email: Yup.string().email("Invalid email").required("Email required"),
   password: Yup.string().required("Password required"),
 });
 
-
 const LoginPage = () => {
-  <statusbar barstyle={'light-content'} backgroundColor={'#0D0D0D'} />
   const navigation = useNavigation();
-  const handleSubmit = (values) => {
-    axios
-      .post("https://really-classic-moray.ngrok-free.app/user/login", values)
-      .then((response) => {
-        console.log("Login successful:", response.data);
-        navigation.navigate("(tabs)");
-      })
-      .catch((error) => {
-        console.log("Login error:", error.response?.data);
+
+  const showToast = (message) => {
+    ToastAndroid.show(message, ToastAndroid.LONG);
+  };
+
+  const handleSubmit = async (values) => {
+    try {
+      const response = await axios.post(
+        "https://really-classic-moray.ngrok-free.app/user/login", 
+        values
+      );
+
+      await AsyncStorage.setItem('userData', JSON.stringify({
+        id: response.data._id,
+        email: response.data.email,
+        name: response.data.name
+      }),()=>{
+        showToast("Login successful!");
       });
+
+      navigation.navigate("(tabs)");
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Login failed';
+      showToast(errorMessage);
+    }
   };
 
   return (
-
     <SafeAreaView style={styles.container}>
       <ImageBackground
         source={require("../assets/images/bg-Dark.png")}
@@ -43,7 +65,6 @@ const LoginPage = () => {
           >
             {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
               <>
-
                 <Text style={styles.title}>Welcome Back</Text>
 
                 <View style={styles.formContainer}>
@@ -55,6 +76,8 @@ const LoginPage = () => {
                     value={values.email}
                     style={styles.input}
                     error={touched.email && !!errors.email}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
                   />
                   {touched.email && errors.email && (
                     <Text style={styles.errorText}>{errors.email}</Text>
@@ -95,8 +118,8 @@ const LoginPage = () => {
             )}
           </Formik>
         </ScrollView>
-      </ImageBackground >
-    </SafeAreaView >
+      </ImageBackground>
+    </SafeAreaView>
   );
 };
 
@@ -109,11 +132,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 16,
     paddingVertical: 20
-  },
-  headerImage: {
-    height: 250,
-    justifyContent: "flex-end",
-    marginBottom: 40
   },
   title: {
     color: "#F8F6FF",
