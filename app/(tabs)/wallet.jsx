@@ -1,228 +1,240 @@
-import React, { useState, useEffect } from "react";
-import { Text, View, Image, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, View, ImageBackground, Image, ScrollView, ActivityIndicator, FlatList, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
+import useThemeStore from '../../store/themeStore';
 
 const Wallet = () => {
-  const [isLoading, setLoading] = useState(true);
+  const [totalBalance, setTotalBalance] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
   const [error, setError] = useState(null);
+  const theme = useThemeStore((state) => state.theme);
 
-  const getCoins = async () => {
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  };
+
+  const fetchCoins = useCallback(async () => {
     try {
-      const response = await fetch(
-        "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false"
-      );
-      const json = await response.json();
-      setData(json);
+      setLoading(true);
       setError(null);
+      const response = await axios.get(
+        "https://api.coingecko.com/api/v3/coins/markets",
+        {
+          params: {
+            vs_currency: 'inr',
+            order: 'market_cap_desc',
+            per_page: 100,
+            page: 1,
+            sparkline: false,
+          },
+          timeout: 5000
+        }
+      );
+      
+      const coins = response.data;
+      setData(coins);
+      const total = coins.reduce((acc, coin) => acc + coin.current_price, 0);
+      setTotalBalance(total);
     } catch (error) {
       console.error(error);
       setError("Failed to fetch cryptocurrency data");
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    getCoins();
   }, []);
 
-  const formatPrice = (price) => {
-    return `$${price.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}`;
-  };
+  useEffect(() => {
+    fetchCoins();
+  }, [fetchCoins]);
 
   const renderItem = ({ item }) => (
-    <View style={styles.itemContainer}>
-      <View style={styles.coinContainer}>
-        <View style={styles.coinNameContainer}>
-          <Image style={styles.coinImage} source={{ uri: item.image }} />
-          <View style={styles.coinInfo}>
-            <Text style={styles.coinName}>{item.name}</Text>
-            <Text style={styles.coinSymbol}>{item.symbol.toUpperCase()}</Text>
-          </View>
-        </View>
-        <View style={styles.priceContainer}>
-          <Text style={styles.coinPrice}>{formatPrice(item.current_price)}</Text>
-          <View style={[
-            styles.priceChangeContainer,
-            {
-              backgroundColor: item.price_change_percentage_24h > 0 
-                ? "rgba(76, 175, 80, 0.1)" 
-                : "rgba(244, 67, 54, 0.1)"
-            }
-          ]}>
-            <Text style={[
-              styles.priceChange,
-              { color: item.price_change_percentage_24h > 0 ? "#4CAF50" : "#F44336" }
-            ]}>
-              {item.price_change_percentage_24h > 0 ? '▲ ' : '▼ '}
-              {Math.abs(item.price_change_percentage_24h).toFixed(2)}%
-            </Text>
-          </View>
+    <View style={styles(theme).coinCard}>
+      <View style={styles(theme).coinHeader}>
+        <Image 
+          source={{ uri: item.image }} 
+          style={styles(theme).coinIcon} 
+        />
+        <View>
+          <Text style={styles(theme).coinSymbol}>{item.symbol.toUpperCase()}</Text>
+          <Text style={styles(theme).coinName}>{item.name}</Text>
         </View>
       </View>
+      <Text style={styles(theme).coinPrice}>
+        {formatCurrency(item.current_price)}
+      </Text>
     </View>
   );
 
-  return (
-    <View style={styles.mainContainer}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Crypto Tracker</Text>
-        <Text style={styles.headerSubtitle}>Top 100 Cryptocurrencies</Text>
-      </View>
+  const backgroundImage = theme === 'dark'
+    ? require('../../assets/images/bg-Dark.png')
+    : require('../../assets/images/bg.png');
 
-      <View style={styles.container}>
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#007AFF" />
-            <Text style={styles.loadingText}>Loading Market Data...</Text>
+  return (
+    <ImageBackground
+      source={backgroundImage}
+      resizeMode="cover"
+      style={styles(theme).backgroundImage}
+    >
+      <ScrollView
+        contentContainerStyle={styles().scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles().header}>
+          <Text style={styles(theme).headerTitle}>Wallet</Text>
+          <Text style={styles(theme).headerSubtitle}>
+            Total Balance: {formatCurrency(totalBalance)}
+          </Text>
+        </View>
+
+        <View style={styles(theme).balanceCard}>
+          <View style={styles().balanceRow}>
+            <Image
+              source={require('../../assets/images/coinIcon.png')}
+              style={styles().coinIcon}
+              resizeMode="contain"
+            />
+            <Text style={styles(theme).balanceAmount}>
+              {formatCurrency(totalBalance)}
+            </Text>
+          </View>
+        </View>
+
+        {loading ? (
+          <View style={styles().loadingContainer}>
+            <ActivityIndicator size="large" color={theme === 'dark' ? '#FFF' : '#000'} />
+            <Text style={styles(theme).loadingText}>Loading wallet...</Text>
           </View>
         ) : error ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={getCoins} style={styles.retryButton}>
-              <Text style={styles.retryText}>Try Again</Text>
+          <View style={styles().errorContainer}>
+            <Text style={styles(theme).errorText}>{error}</Text>
+            <TouchableOpacity onPress={fetchCoins}>
+              <Text style={styles(theme).retryText}>Tap to retry</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <FlatList
             data={data}
-            keyExtractor={({ id }) => id}
             renderItem={renderItem}
-            showsVerticalScrollIndicator={false}
-            initialNumToRender={10}
-            windowSize={5}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+            contentContainerStyle={styles().listContainer}
           />
         )}
-      </View>
-    </View>
+      </ScrollView>
+    </ImageBackground>
   );
 };
 
-const styles = StyleSheet.create({
-  mainContainer: {
+const styles = (theme) => StyleSheet.create({
+  backgroundImage: {
     flex: 1,
-    backgroundColor: "#F9F9F9",
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    padding: 24,
   },
   header: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 24,
-    paddingHorizontal: 16,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    marginBottom: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    marginBottom: 24,
+    alignItems: 'center',
   },
   headerTitle: {
-    color: "white",
-    fontSize: 24,
-    fontWeight: "800",
-    marginBottom: 4,
+    fontSize: 28,
+    fontWeight: '800',
+    color: theme === 'dark' ? '#FFFFFF' : '#1A1A1A',
+    marginBottom: 8,
   },
   headerSubtitle: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 14,
+    fontSize: 16,
+    color: theme === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)',
   },
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
+  balanceCard: {
+    backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 24,
   },
-  itemContainer: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    marginVertical: 6,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+  balanceRow: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  coinContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  balanceAmount: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: theme === 'dark' ? '#FFFFFF' : '#1A1A1A',
+    marginLeft: 16,
   },
-  coinNameContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  coinImage: {
+  coinIcon: {
     width: 48,
     height: 48,
-    marginRight: 16,
-  },
-  coinInfo: {
-    marginRight: 16,
-  },
-  coinName: {
-    color: "#333",
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  coinSymbol: {
-    color: "#666",
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  priceContainer: {
-    alignItems: "flex-end",
-  },
-  coinPrice: {
-    color: "#333",
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 6,
-  },
-  priceChangeContainer: {
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  priceChange: {
-    fontSize: 14,
-    fontWeight: "600",
+    paddingHorizontal: 16,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
   loadingText: {
     marginTop: 16,
-    color: "#666",
+    fontSize: 16,
+    color: theme === 'dark' ? '#FFFFFF' : '#1A1A1A',
   },
   errorContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
   errorText: {
-    color: "#F44336",
     fontSize: 16,
+    color: theme === 'dark' ? '#FF4757' : '#DC2626',
     marginBottom: 16,
-    textAlign: "center",
-  },
-  retryButton: {
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
   },
   retryText: {
-    color: "white",
-    fontWeight: "600",
+    fontSize: 14,
+    color: theme === 'dark' ? '#FFFFFF' : '#1A1A1A',
+    textDecorationLine: 'underline',
+  },
+  listContainer: {
+    paddingBottom: 24,
+  },
+  coinCard: {
+    backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  coinHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  coinSymbol: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme === 'dark' ? '#FFFFFF' : '#1A1A1A',
+  },
+  coinName: {
+    fontSize: 12,
+    color: theme === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)',
+  },
+  coinPrice: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme === 'dark' ? '#FFFFFF' : '#1A1A1A',
   },
 });
 
 export default Wallet;
+

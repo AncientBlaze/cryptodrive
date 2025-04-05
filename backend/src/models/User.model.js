@@ -1,9 +1,12 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const UserSchema = new mongoose.Schema({
     username: {
         type: String,
-        required: true
+        unique: true
+    },
+    fullName: {
+        type: String
     },
     email: {
         type: String,
@@ -20,7 +23,7 @@ const UserSchema = new mongoose.Schema({
         required: false
     },
     dateOfBirth: {
-        type: Date,
+        type: String,
     },
     country: {
         type: String,
@@ -33,11 +36,18 @@ const UserSchema = new mongoose.Schema({
         default: 0
     },
     authorized: {
-        type: Boolean,
-        default: false
-    }
+        type: String,
+        default: 'Not Authorized'
+    },
+    userImage: {
+        type: String,
+        default: 'https://cdn-icons-png.flaticon.com/512/149/149071.png'
+    },
+    file: {
+        type: String
+    },
 });
 
 const User = mongoose.model('User', UserSchema);
 
-export default User
+export default User;

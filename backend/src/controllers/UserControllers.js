@@ -1,8 +1,16 @@
 import User from "../models/User.model.js";
 import bcryptjs from "bcryptjs";
 const insertUser = async (req, res) => {
-  const { name, email, password, phone, dateOfBirth, country, address, coin } = req.body;
-  const user = {
+  const { name, email, password, phone, dateOfBirth, country, address, coin, image } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: "Name, email, and password are required",
+    });
+  }
+
+  const user = new User({
     name,
     email,
     password,
@@ -11,18 +19,27 @@ const insertUser = async (req, res) => {
     country,
     address,
     coin,
-  };
+    image,
+  });
 
   try {
-    const response = await User.insertOne(user);
-    res.send({
+    const hashedPassword = await bcryptjs.hash(password, 10);
+    user.password = hashedPassword;
+
+    const savedUser = await user.save();
+    res.status(201).json({
       success: true,
-      data: response,
+      data: {
+        id: savedUser._id,
+        email: savedUser.email,
+        name: savedUser.name,
+      },
     });
   } catch (error) {
-    res.send({
+    console.error("Error inserting user:", error);
+    res.status(500).json({
       success: false,
-      data: error,
+      message: error.message || 'Internal server error',
     });
   }
 };
@@ -131,7 +148,7 @@ const register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // Validate input
+
     if (!username || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -139,7 +156,6 @@ const register = async (req, res) => {
       });
     }
 
-    // Check for existing user
     const existingUser = await User.findOne({
       $or: [{ email }, { username }]
     });
@@ -151,20 +167,19 @@ const register = async (req, res) => {
       });
     }
 
-    // Hash password
+
     const hashedPassword = await bcryptjs.hash(password, 10);
 
-    // Create new user
+
     const newUser = new User({
       username,
       email,
       password: hashedPassword
     });
 
-    // Save user
     const savedUser = await newUser.save();
 
-    // Return response without sensitive data
+
     res.status(201).json({
       success: true,
       data: {
@@ -184,10 +199,11 @@ const register = async (req, res) => {
 };
 
 const updateAuthentication = async (req, res) => {
-  const { id } = req.body;
+  const { id } = req.params;
+  const { authorized } = req.body;
 
   try {
-    const response = await User.updateOne({ _id: id }, { authorized: true });
+    const response = await User.updateOne({ _id: id }, { authorized: authorized });
     res.send({
       status: true,
       data: response
@@ -199,21 +215,72 @@ const updateAuthentication = async (req, res) => {
     })
   }
 }
+
 const validateKyc = async (req, res) => {
   const { id } = req.params;
-  const { name, email, password, phone, dateOfBirth, country, address } = req.body;
+  const { file, fullname, phone, dateOfBirth, country, address, kyc } = req.body;
+
   try {
-    const response = await User.updateOne({ _id: id }, { name, email, password, phone, dateOfBirth, country, address });
+    const response = await User.updateOne({ _id: id }, { file, fullname, phone, dateOfBirth, country, address, kyc });
     res.send({
       status: true,
       data: response
-    })
+    });
   } catch (error) {
     res.send({
       status: false,
       error: error
-    })
+    });
   }
-}
+};
 
-export { insertUser, updateCoin, getloggedUser, getUserByName, login, register, updateAuthentication, validateKyc };
+const changePass = async (req, res) => {
+  const { id } = req.params;
+  const { oldPassword, newPassword } = req.body;
+  if (!oldPassword || !newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Both old password and new password are required"
+    });
+  }
+
+  try {
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    const isPasswordValid = await bcryptjs.compare(oldPassword, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Old password is incorrect"
+      });
+    }
+
+    if (oldPassword === newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be different from old password"
+      });
+    }
+    const hashedNewPassword = await bcryptjs.hash(newPassword, 10);
+    await User.updateOne({ _id: id }, { $set: { password: hashedNewPassword } });
+    res.status(200).json({
+      success: true,
+      message: "Password changed successfully"
+    });
+  } catch (error) {
+    console.error("Password change error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error"
+    });
+  }
+};
+
+
+export { insertUser, updateCoin, getloggedUser, getUserByName, login, register, updateAuthentication, validateKyc, changePass };

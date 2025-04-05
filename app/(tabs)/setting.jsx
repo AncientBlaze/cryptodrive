@@ -1,68 +1,109 @@
 import { useNavigation } from 'expo-router';
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Switch,
+  TouchableOpacity,
+  ImageBackground,
+  ToastAndroid,
+  TextInput,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import useIdStore from '../../store/credentialStore';
+import useThemeStore from '../../store/themeStore';
+import axios from 'axios';
+import Modal from 'react-native-modal';
+import { Formik } from 'formik';
+import * as Yup from 'yup';
+import React from 'react';
+
+const PasswordSchema = Yup.object().shape({
+  oldPassword: Yup.string().required('Old password is required'),
+  newPassword: Yup.string().min(6, 'Password too short!').required('New password is required'),
+});
+
+const SettingItem = React.memo(({ icon, title, subtitle, component, action, styles }) => (
+  <TouchableOpacity style={styles.itemContainer} onPress={action} disabled={!action}>
+    <View style={styles.itemContent}>
+      <Icon name={icon} size={24} color="#007AFF" style={styles.itemIcon} />
+      <View style={styles.textContainer}>
+        <Text style={styles.itemTitle}>{title}</Text>
+        {subtitle && <Text style={styles.itemSubtitle}>{subtitle}</Text>}
+      </View>
+    </View>
+    {component || <Icon name="chevron-right" size={24} color="#ccc" />}
+  </TouchableOpacity>
+));
 
 const SettingsScreen = () => {
-  const [biometricEnabled, setBiometricEnabled] = React.useState(true);
-  const [darkMode, setDarkMode] = React.useState(false);
-  const [twoFactorAuth, setTwoFactorAuth] = React.useState(false);
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [kyc, setKyc] = useState(null);
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const theme = useThemeStore((state) => state.theme);
+  const toggleTheme = useThemeStore((state) => state.toggleTheme);
   const navigation = useNavigation();
+  const id = useIdStore((state)  => state.id); 
+
+  console.log(`id Debug from Settings: ${id}`); // Log the id to check if it's being retrieved correctly
+
+  const toggleModal = () => setModalVisible(!isModalVisible);
+  const showToast = (message) => ToastAndroid.show(message, ToastAndroid.LONG);
+
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  const fetchUserData = async () => {
+    try {
+      const response = await axios.get(`https://really-classic-moray.ngrok-free.app/user/get/${id}`);
+      const userData = response.data.data;
+      setKyc(userData[0].authorized);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
   const handleLogout = () => {
     navigation.navigate('login');
-  }
+    useIdStore.getState().clearId();
+    useIdStore.getState().clearSession();
+  };
+
+  const goToProfile = () => navigation.navigate('profile');
+  const goToKYC = () => navigation.navigate('KYCPage');
+  const goToLanguage = () => navigation.navigate('Language');
+  const goToCurrency = () => navigation.navigate('Currency');
+  const goToHelp = () => navigation.navigate('Help');
+  const goToTerms = () => navigation.navigate('Terms');
+  const goToPrivacy = () => navigation.navigate('Privacy');
+
   const settingsSections = [
     {
       title: 'Account Settings',
       data: [
-        {
-          icon: 'person',
-          title: 'Profile Information',
-          action: () => navigation.navigate('profile'),
-        },
+        { icon: 'person', title: 'Profile Information', action: goToProfile },
         {
           icon: 'verified-user',
           title: 'KYC Verification',
-          subtitle: 'Verified',
-          action: () => navigation.navigate('KYC'),
+          subtitle:
+            kyc === 'Authorized' ? 'Verified' :
+              kyc === 'Pending' ? 'Pending' : 'Not Verified',
+          action: () => {
+            kyc === 'Authorized'
+              ? showToast('KYC already verified')
+              : kyc === 'Pending'
+                ? showToast('KYC status is being checked by Admin')
+                : goToKYC();
+          },
         },
-        {
-          icon: 'lock',
-          title: 'Change Password',
-          action: () => navigation.navigate('ChangePassword'),
-        },
-      ],
-    },
-    {
-      title: 'Security',
-      data: [
-        {
-          icon: 'fingerprint',
-          title: 'Biometric Login',
-          component: (
-            <Switch
-              value={biometricEnabled}
-              onValueChange={setBiometricEnabled}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-            />
-          ),
-        },
-        {
-          icon: 'security',
-          title: 'Two-Factor Authentication',
-          component: (
-            <Switch
-              value={twoFactorAuth}
-              onValueChange={setTwoFactorAuth}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-            />
-          ),
-        },
-        {
-          icon: 'device-unknown',
-          title: 'Connected Devices',
-          action: () => navigation.navigate('Devices'),
-        },
+        { icon: 'lock', title: 'Change Password', action: toggleModal },
       ],
     },
     {
@@ -73,140 +114,174 @@ const SettingsScreen = () => {
           title: 'Dark Mode',
           component: (
             <Switch
-              value={darkMode}
-              onValueChange={setDarkMode}
+              value={theme === 'dark'}
+              onValueChange={toggleTheme}
               trackColor={{ false: '#767577', true: '#81b0ff' }}
             />
           ),
         },
-        {
-          icon: 'language',
-          title: 'App Language',
-          subtitle: 'English',
-          action: () => navigation.navigate('Language'),
-        },
-        {
-          icon: 'attach-money',
-          title: 'Default Currency',
-          subtitle: 'USD',
-          action: () => navigation.navigate('Currency'),
-        },
-      ],
-    },
-    {
-      title: 'Wallet Settings',
-      data: [
-        {
-          icon: 'account-balance-wallet',
-          title: 'Wallet Addresses',
-          action: () => navigation.navigate('WalletAddresses'),
-        },
-        {
-          icon: 'backup',
-          title: 'Backup Wallet',
-          action: () => navigation.navigate('Backup'),
-        },
-        {
-          icon: 'history',
-          title: 'Transaction History',
-          action: () => navigation.navigate('Transactions'),
-        },
+        { icon: 'language', title: 'App Language', subtitle: 'English', action: goToLanguage },
+        { icon: 'attach-money', title: 'Default Currency', subtitle: 'USD', action: goToCurrency },
       ],
     },
     {
       title: 'Support & Legal',
       data: [
-        {
-          icon: 'help',
-          title: 'Help Center',
-          action: () => navigation.navigate('Help'),
-        },
-        {
-          icon: 'description',
-          title: 'Terms of Service',
-          action: () => navigation.navigate('Terms'),
-        },
-        {
-          icon: 'policy',
-          title: 'Privacy Policy',
-          action: () => navigation.navigate('Privacy'),
-        },
+        { icon: 'help', title: 'Help Center', action: goToHelp },
+        { icon: 'description', title: 'Terms of Service', action: goToTerms },
+        { icon: 'policy', title: 'Privacy Policy', action: goToPrivacy },
       ],
     },
   ];
 
-  const SettingItem = ({ icon, title, subtitle, component, action }) => (
-    <TouchableOpacity style={styles.itemContainer} onPress={action} disabled={!action}>
-      <View style={styles.itemContent}>
-        <Icon name={icon} size={24} color="#007AFF" style={styles.itemIcon} />
-        <View style={styles.textContainer}>
-          <Text style={styles.itemTitle}>{title}</Text>
-          {subtitle && <Text style={styles.itemSubtitle}>{subtitle}</Text>}
-        </View>
-      </View>
-      {component || <Icon name="chevron-right" size={24} color="#ccc" />}
-    </TouchableOpacity>
-  );
-
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.header}>Settings</Text>
-
-      {settingsSections.map((section, index) => (
-        <View key={index} style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>{section.title}</Text>
-          <View style={styles.sectionContent}>
-            {section.data.map((item, itemIndex) => (
-              <SettingItem
-                key={itemIndex}
-                icon={item.icon}
-                title={item.title}
-                subtitle={item.subtitle}
-                component={item.component}
-                action={item.action}
-              />
-            ))}
+    <ImageBackground
+      source={theme === 'dark' ? require('../../assets/images/bg-Dark.png') : require('../../assets/images/bg.png')}
+      style={styles.background}
+    >
+      <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+        <Text style={styles.header}>Settings</Text>
+        {settingsSections.map((section, index) => (
+          <View key={index} style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <View style={styles.sectionContent}>
+              {section.data.map((item, i) => (
+                <SettingItem key={i} {...item} styles={styles} />
+              ))}
+            </View>
           </View>
-        </View>
-      ))}
+        ))}
 
-      <TouchableOpacity style={styles.logoutButton} onPress={() => handleLogout()}>
-        <Text style={styles.logoutText}>Log Out</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutText}>Log Out</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      <Modal
+        isVisible={isModalVisible}
+        onBackdropPress={toggleModal}
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        animationInTiming={300}
+        animationOutTiming={200}
+        backdropTransitionInTiming={300}
+        backdropTransitionOutTiming={200}
+        useNativeDriverForBackdrop
+        useNativeDriver>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Change Password</Text>
+          <Formik
+            initialValues={{ oldPassword: '', newPassword: '' }}
+            validationSchema={PasswordSchema}
+            onSubmit={async (values, { setSubmitting, resetForm }) => {
+              try {
+                const id = useIdStore.getState().id;
+                await axios.put(`https://really-classic-moray.ngrok-free.app/user/${id}/changePassword`, values);
+                showToast('Password changed successfully');
+                resetForm();
+                toggleModal();
+              } catch (error) {
+                showToast('Failed to change password');
+              } finally {
+                setSubmitting(false);
+              }
+            }}
+          >
+            {({ handleChange, handleBlur, handleSubmit, values, errors, touched, isSubmitting }) => {
+              const fields = [
+                {
+                  label: 'Old Password',
+                  name: 'oldPassword',
+                  value: values.oldPassword,
+                  secure: !showOldPassword,
+                  toggle: () => setShowOldPassword(!showOldPassword),
+                  isVisible: showOldPassword,
+                },
+                {
+                  label: 'New Password',
+                  name: 'newPassword',
+                  value: values.newPassword,
+                  secure: !showNewPassword,
+                  toggle: () => setShowNewPassword(!showNewPassword),
+                  isVisible: showNewPassword,
+                },
+              ];
+
+              return (
+                <>
+                  {fields.map((field, idx) => (
+                    <View key={idx} style={styles.inputWrapper}>
+                      <TextInput
+                        style={styles.input}
+                        placeholder={field.label}
+                        secureTextEntry={field.secure}
+                        autoCapitalize="none"
+                        onChangeText={handleChange(field.name)}
+                        onBlur={handleBlur(field.name)}
+                        value={field.value}
+                        placeholderTextColor={theme === 'dark' ? '#aaa' : '#666'}
+                      />
+                      <TouchableOpacity style={styles.eyeButton} onPress={field.toggle}>
+                        <Ionicons
+                          name={field.isVisible ? 'eye-off' : 'eye'}
+                          size={22}
+                          color={theme === 'dark' ? '#fff' : '#333'}
+                        />
+                      </TouchableOpacity>
+                      {touched[field.name] && errors[field.name] && (
+                        <Text style={styles.errorText}>{errors[field.name]}</Text>
+                      )}
+                    </View>
+                  ))}
+
+                  <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={isSubmitting}>
+                    <Text style={styles.submitButtonText}>
+                      {isSubmitting ? 'Submitting...' : 'Change Password'}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              );
+            }}
+          </Formik>
+        </View>
+      </Modal>
+    </ImageBackground>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme) => StyleSheet.create({
+  background: {
+    flex: 1,
+    backgroundColor: theme === 'dark' ? '#121212' : '#F5F5F5',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: 'transparent',
     padding: 16,
   },
   header: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#333',
+    color: theme === 'dark' ? '#FFF' : '#333',
     marginBottom: 24,
   },
   sectionContainer: {
     marginBottom: 24,
-    marginTop: 16,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
+    color: theme === 'dark' ? '#888' : '#666',
     marginBottom: 12,
     paddingHorizontal: 8,
   },
   sectionContent: {
-    backgroundColor: '#fff',
+    backgroundColor: theme === 'dark' ? '#1E1E1E' : '#fff',
     borderRadius: 12,
     paddingHorizontal: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: theme === 'dark' ? 0.1 : 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
@@ -216,7 +291,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: theme === 'dark' ? '#333' : '#eee',
   },
   itemContent: {
     flexDirection: 'row',
@@ -231,12 +306,12 @@ const styles = StyleSheet.create({
   },
   itemTitle: {
     fontSize: 16,
-    color: '#333',
+    color: theme === 'dark' ? '#FFF' : '#333',
     fontWeight: '500',
   },
   itemSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: theme === 'dark' ? '#888' : '#666',
     marginTop: 4,
   },
   logoutButton: {
@@ -251,6 +326,52 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  modalContainer: {
+    borderRadius: 12,
+    padding: 20,
+    backgroundColor: theme === 'dark' ? '#1E1E1E' : '#FFF',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: theme === 'dark' ? '#FFF' : '#333',
+  },
+  inputWrapper: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  input: {
+    height: 48,
+    borderColor: theme === 'dark' ? '#555' : '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingRight: 42,
+    marginBottom: 12,
+    color: theme === 'dark' ? '#FFF' : '#333',
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
+    padding: 4,
+  },
+  errorText: {
+    color: theme === 'dark' ? '#FF3B30' : 'red',
+    marginBottom: 8,
+    fontSize: 12,
+  },
+  submitButton: {
+    backgroundColor: '#007AFF',
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: '#FFF',
+    fontWeight: 'bold',
   },
 });
 

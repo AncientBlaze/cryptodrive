@@ -1,353 +1,324 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, TextInput } from 'react-native';
-import { Formik } from 'formik';
-import * as Yup from 'yup';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import useIdStore from '../store/credentialStore';
+import React, { useEffect, useState } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  ImageBackground,
+  TouchableOpacity,
+  Image,
+} from 'react-native';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import useThemeStore from '../store/themeStore';
+import { Ionicons } from '@expo/vector-icons';
 
-const ProfileScreen = () => {
-  const [userData, setUserData] = useState(null);
-  const [editMode, setEditMode] = useState(false);
+const profile = () => {
+  const theme = useThemeStore((state) => state.theme);
+  const id = useIdStore.getState().id;
+  const [userData, setUserData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
+      if (!id) {
+        Alert.alert('Error', 'User ID not found');
+        setLoading(false);
+        return;
+      }
+
       try {
-        const storedData = await AsyncStorage.getItem('userData');
-        if (storedData) {
-          const parsedData = JSON.parse(storedData);
-          
-          setUserId(parsedData.id);
-          console.log(parsedData.id);
-
-          const response = await axios.get(
-            `https://really-classic-moray.ngrok-free.app/user/${parsedData.id}`
-          );
-
-          setUserData(response.data);
-        }
+        const response = await axios.get(
+          `https://really-classic-moray.ngrok-free.app/user/get/${id}`
+        );
+        setUserData(response.data.data);
       } catch (error) {
-        Alert.alert('Error', 'Failed to load user data');
+        Alert.alert('Error', 'Failed to fetch user data');
       } finally {
         setLoading(false);
       }
     };
 
     fetchUserData();
-  }, []);
-
-  const handleUpdateProfile = async (values) => {
-    try {
-      const response = await axios.patch(
-        `https://really-classic-moray.ngrok-free.app/user/${userId}/kyc`,
-        values
-      );
-      if (values.email !== userData?.email) {
-        const updatedStorage = JSON.parse(await AsyncStorage.getItem('userData'));
-        updatedStorage.email = values.email;
-        await AsyncStorage.setItem('userData', JSON.stringify(updatedStorage));
-      }
-
-      setUserData(response.data);
-      setEditMode(false);
-      Alert.alert('Success', 'Profile updated successfully!');
-    } catch (error) {
-      Alert.alert('Error', error.response?.data?.message || 'Update failed');
-    }
-  };
+  }, [id]);
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View style={[styles.loadingContainer, theme === 'dark' ? styles.darkLoadingContainer : styles.lightLoadingContainer]}>
+        <ActivityIndicator size="large" color="#7C3AED" />
       </View>
     );
   }
 
-  return (
-    <ScrollView style={styles.container}>
-    </ScrollView>
-  );
-};
+  if (!userData || userData.length === 0) {
+    { console.log(userData) }
+    return (
+      <View style={[styles.errorContainer, theme === 'dark' ? styles.darkErrorContainer : styles.lightErrorContainer]}>
+        <Text style={[styles.errorText, theme === 'dark' ? styles.darkErrorText : styles.lightErrorText]}>
+          No user data found
+        </Text>
+      </View>
+    );
+  }
 
-const KycForm = ({ initialValues, onSubmit, onCancel }) => {
-  const validationSchema = Yup.object().shape({
-    name: Yup.string().required('Required'),
-    email: Yup.string().email('Invalid email').required('Required'),
-    phone: Yup.string().required('Required'),
-    dateOfBirth: Yup.string().required('Required'),
-    country: Yup.string().required('Required'),
-    address: Yup.string().required('Required'),
+  const { username, email, phone, country, address, dateOfBirth, coin } = userData[0];
+
+  const getInitials = (name) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase();
+  };
+  const dateOfBirthFormatted = new Date(dateOfBirth).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   });
-
   return (
-    <Formik
-      initialValues={initialValues}
-      validationSchema={validationSchema}
-      onSubmit={onSubmit}
+    <ImageBackground
+      source={theme === 'dark' ? require('../assets/images/bg-Dark.png') : require('../assets/images/bg.png')}
+      style={styles.background}
     >
-      {({ handleChange, handleBlur, handleSubmit, values, errors, touched, isSubmitting }) => (
-        <View style={styles.formContainer}>
-          <FormField
-            label="Full Name"
-            icon="person"
-            value={values.name}
-            onChangeText={handleChange('name')}
-            error={touched.name && errors.name}
-          />
-
-          <FormField
-            label="Email"
-            icon="email"
-            value={values.email}
-            onChangeText={handleChange('email')}
-            keyboardType="email-address"
-            error={touched.email && errors.email}
-          />
-
-          <FormField
-            label="Phone Number"
-            icon="phone"
-            value={values.phone}
-            onChangeText={handleChange('phone')}
-            keyboardType="phone-pad"
-            error={touched.phone && errors.phone}
-          />
-
-          <FormField
-            label="Date of Birth"
-            icon="event"
-            value={values.dateOfBirth}
-            onChangeText={handleChange('dateOfBirth')}
-            placeholder="YYYY-MM-DD"
-            error={touched.dateOfBirth && errors.dateOfBirth}
-          />
-
-          <FormField
-            label="Country"
-            icon="public"
-            value={values.country}
-            onChangeText={handleChange('country')}
-            error={touched.country && errors.country}
-          />
-
-          <FormField
-            label="Address"
-            icon="home"
-            value={values.address}
-            onChangeText={handleChange('address')}
-            multiline
-            error={touched.address && errors.address}
-          />
-
-          <View style={styles.buttonGroup}>
-            <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
-              onPress={onCancel}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.buttonText}>Cancel</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.button, styles.submitButton]}
-              onPress={handleSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Save Changes</Text>
-              )}
-            </TouchableOpacity>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <View style={[styles.avatar, theme === 'dark' ? styles.darkAvatar : styles.lightAvatar]}>
+            <Text style={styles.avatarText}>{getInitials(username)}</Text>
           </View>
+
+          <Text style={[styles.name, theme === 'dark' ? styles.darkName : styles.lightName]}>{username}</Text>
+
+          <TouchableOpacity style={[styles.coinContainer, theme === 'dark' ? styles.darkCoinContainer : styles.lightCoinContainer]}>
+            <Image
+              source={require('../assets/images/coinIcon.png')}
+              style={{ width: 20, height: 20 }}
+            />
+            <Text style={styles.coinText}>{coin}</Text>
+          </TouchableOpacity>
         </View>
-      )}
-    </Formik>
+
+        <View style={[styles.card, theme === 'dark' ? styles.darkCard : styles.lightCard]}>
+          <View style={styles.cardHeader}>
+            <Ionicons
+              name="person-circle-outline"
+              size={24}
+              color={theme === 'dark' ? '#8F63FF' : '#7C3AED'}
+            />
+            <Text style={[styles.cardTitle, theme === 'dark' ? styles.darkCardTitle : styles.lightCardTitle]}>
+              Personal Information
+            </Text>
+          </View>
+
+          {[
+            { label: 'Email', value: email, icon: 'mail-outline' },
+            { label: 'Phone', value: phone, icon: 'call-outline' },
+            { label: 'Country', value: country || 'N/A', icon: 'earth-outline' },
+            { label: 'Address', value: address || 'N/A', icon: 'location-outline' },
+            { label: 'Date of Birth', value: dateOfBirthFormatted || 'N/A', icon: 'calendar-outline' },
+          ].map((item, index) => (
+            <View key={index} style={styles.infoItem}>
+              <View style={styles.infoIcon}>
+                <Ionicons
+                  name={item.icon}
+                  size={20}
+                  color={theme === 'dark' ? '#8F63FF' : '#7C3AED'}
+                />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={[styles.label, theme === 'dark' ? styles.darkLabel : styles.lightLabel]}>
+                  {item.label}
+                </Text>
+                <Text style={[styles.value, theme === 'dark' ? styles.darkValue : styles.lightValue]}>
+                  {item.value}
+                </Text>
+              </View>
+              {index < 4 && <View style={[styles.divider, theme === 'dark' ? styles.darkDivider : styles.lightDivider]} />}
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </ImageBackground>
   );
 };
-
-const FormField = ({ label, icon, error, ...props }) => (
-  <View style={styles.fieldContainer}>
-    <View style={styles.labelContainer}>
-      <Icon name={icon} size={20} color="#666" style={styles.fieldIcon} />
-      <Text style={styles.fieldLabel}>{label}</Text>
-    </View>
-    <TextInput
-      style={[styles.input, error && styles.inputError]}
-      placeholderTextColor="#999"
-      {...props}
-    />
-    {error && <Text style={styles.errorText}>{error}</Text>}
-  </View>
-);
-
-const InfoItem = ({ icon, title, value, valueStyle }) => (
-  <View style={styles.infoItem}>
-    <View style={styles.infoIconContainer}>
-      <Icon name={icon} size={20} color="#007AFF" />
-    </View>
-    <View style={styles.infoTextContainer}>
-      <Text style={styles.infoTitle}>{title}</Text>
-      <Text style={[styles.infoValue, valueStyle]}>{value}</Text>
-    </View>
-  </View>
-);
 
 const styles = StyleSheet.create({
-  buttonGroup: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-    gap: 10,
-  },
-  cancelButton: {
-    backgroundColor: '#FF3B30',
-  },
-  submitButton: {
-    backgroundColor: '#007AFF',
+  background: {
+    flex: 1,
+    resizeMode: 'cover',
   },
   container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
+    padding: 20,
+    paddingBottom: 50,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  header: {
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 15,
-  },
-  name: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
-  },
-  email: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 15,
-  },
-  editButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  editButtonText: {
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  infoContainer: {
-    padding: 15,
-    backgroundColor: '#fff',
-    marginTop: 10,
-  },
-  infoItem: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  infoIconContainer: {
-    width: 40,
+  errorContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  infoTextContainer: {
-    flex: 1,
-  },
-  infoTitle: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 3,
-  },
-  infoValue: {
+  errorText: {
     fontSize: 16,
-    color: '#333',
+    fontWeight: '600',
   },
-  formContainer: {
-    padding: 15,
-    backgroundColor: '#fff',
-    marginTop: 10,
-  },
-  fieldContainer: {
-    marginBottom: 15,
-  },
-  labelContainer: {
-    flexDirection: 'row',
+  header: {
     alignItems: 'center',
+    marginBottom: 30,
+  },
+  avatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15,
+    borderWidth: 3,
+  },
+  avatarText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: '700',
     marginBottom: 8,
   },
-  fieldIcon: {
-    marginRight: 8,
-  },
-  fieldLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#333',
-  },
-  inputError: {
-    borderColor: 'red',
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 12,
+  coinContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
     marginTop: 5,
   },
-  buttonContainer: {
+  coinText: {
+    fontWeight: '600',
+    fontSize: 16,
+    marginLeft: 6,
+    color: '#FFD700',
+  },
+  card: {
+    borderRadius: 16,
+    padding: 20,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    padding: 15,
-    borderRadius: 8,
+    justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 20,
+    gap: 10,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  infoItem: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  infoIcon: {
+    marginRight: 12,
+    width: 32,
+    alignItems: 'center',
+  },
+  infoContent: {
     flex: 1,
   },
-  buttonText: {
-    color: '#fff',
+  label: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  value: {
     fontSize: 16,
     fontWeight: '500',
   },
-  logoutButton: {
-    backgroundColor: '#FF0000',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    flex: 1,
-    marginLeft: 10,
+  divider: {
+    height: 1,
+    marginTop: 12,
   },
-  logoutButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '500',
-  }
+
+  
+  darkLoadingContainer: {
+    backgroundColor: '#0D0D0D',
+  },
+  darkErrorContainer: {
+    backgroundColor: '#0D0D0D',
+  },
+  darkErrorText: {
+    color: '#FF4D4D',
+  },
+  darkAvatar: {
+    backgroundColor: '#6339F9',
+    borderColor: '#8F63FF',
+  },
+  darkName: {
+    color: '#FFF',
+  },
+  darkCoinContainer: {
+    backgroundColor: '#2D2D2D',
+  },
+  darkCard: {
+    backgroundColor: '#1A1A1A',
+  },
+  darkCardTitle: {
+    color: '#FFF',
+  },
+  darkLabel: {
+    color: '#999',
+  },
+  darkValue: {
+    color: '#FFF',
+  },
+  darkDivider: {
+    backgroundColor: '#333',
+  },
+
+  
+  lightLoadingContainer: {
+    backgroundColor: '#F5F5F5',
+  },
+  lightErrorContainer: {
+    backgroundColor: '#F5F5F5',
+  },
+  lightErrorText: {
+    color: '#EF4444',
+  },
+  lightAvatar: {
+    backgroundColor: '#7C3AED',
+    borderColor: '#A78BFA',
+  },
+  lightName: {
+    color: '#1F2937',
+  },
+  lightCoinContainer: {
+    backgroundColor: '#EDE9FE',
+  },
+  lightCard: {
+    backgroundColor: '#FFF',
+  },
+  lightCardTitle: {
+    color: '#1F2937',
+  },
+  lightLabel: {
+    color: '#6B7280',
+  },
+  lightValue: {
+    color: '#1F2937',
+  },
+  lightDivider: {
+    backgroundColor: '#E5E7EB',
+  },
 });
 
-export default ProfileScreen;
+export default profile;
