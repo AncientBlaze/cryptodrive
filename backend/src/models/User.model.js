@@ -39,7 +39,7 @@ const UserSchema = new mongoose.Schema({
         type: String,
         default: 'Not Authorized'
     },
-    userImage: {
+    photo: {
         type: String,
         default: 'https://cdn-icons-png.flaticon.com/512/149/149071.png'
     },

@@ -1,5 +1,6 @@
 import User from "../models/User.model.js";
 import bcryptjs from "bcryptjs";
+
 const insertUser = async (req, res) => {
   const { name, email, password, phone, dateOfBirth, country, address, coin, image } = req.body;
 
@@ -218,10 +219,10 @@ const updateAuthentication = async (req, res) => {
 
 const validateKyc = async (req, res) => {
   const { id } = req.params;
-  const { file, fullname, phone, dateOfBirth, country, address, kyc } = req.body;
+  const { photo, file, fullname, phone, dateOfBirth, country, address, kyc } = req.body;
 
   try {
-    const response = await User.updateOne({ _id: id }, { file, fullname, phone, dateOfBirth, country, address, kyc });
+    const response = await User.updateOne({ _id: id }, { photo, file, fullname, phone, dateOfBirth, country, address, kyc });
     res.send({
       status: true,
       data: response

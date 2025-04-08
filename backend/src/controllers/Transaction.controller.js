@@ -1,79 +1,81 @@
 import Transaction from "../models/Transaction.model.js";
 
+// ✅ INSERT TRANSACTION
 const insert = async (req, res) => {
   const { buyer, type, transactionProof, amount, coin, image } = req.body;
 
-  const transaction = {
-    buyer,
-    type,
-    transactionProof,
-    amount,
-    coin,
-    image,
-  };
-
   try {
-    const response = await Transaction.insertOne(transaction);
+    const transaction = await Transaction.create({
+      buyer,
+      type,
+      transactionProof,
+      amount,
+      coin,
+      image,
+    });
 
-    return res.send({
+    return res.status(201).send({
       status: true,
-      data: response,
+      data: transaction,
     });
   } catch (error) {
-    return res.send({
+    return res.status(500).send({
       status: false,
-      error: error,
+      message: error.message,
     });
   }
 };
 
+// ✅ GET ALL TRANSACTIONS
 const getAllData = async (req, res) => {
   try {
-    const response = await Transaction.find();
+    const response = await Transaction.find().populate("buyer");
 
-    if (response) {
-      return res.send({
+    if (response && response.length > 0) {
+      return res.status(200).send({
         status: true,
         data: response,
       });
     } else {
-      return res.send({
+      return res.status(404).send({
         status: false,
-        data: "response not found",
+        message: "No transactions found",
       });
     }
   } catch (error) {
-    return res.send({
+    return res.status(500).send({
       status: false,
-      error: error,
+      message: error.message,
     });
   }
 };
 
+// ✅ UPDATE STATUS
 const updateStatus = async (req, res) => {
   const { id } = req.body;
 
   try {
-    const response = await Transaction.updateOne(
-      { _id: id },
-      { $set: { status: true } }
+    const response = await Transaction.findByIdAndUpdate(
+      id,
+      { status: true },
+      { new: true }
     );
 
     if (response) {
-      return res.send({
+      return res.status(200).send({
         status: true,
         data: response,
       });
     } else {
-      return res.send({
+      return res.status(404).send({
         status: false,
-        data: "response not found",
+        message: "Transaction not found",
       });
     }
   } catch (error) {
-    return res.send({
+    return res.status(500).send({
       status: false,
-      error: error,
+      message: error.message,
     });
   }
 };

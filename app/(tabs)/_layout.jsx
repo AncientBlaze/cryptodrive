@@ -28,16 +28,6 @@ export default function RootLayout() {
                 }}
             />
             <Tabs.Screen
-                name="market"
-                options={{
-                    headerShown: false,
-                    tabBarLabel: 'Market',
-                    tabBarIcon: ({ color, size }) => (
-                        <MaterialIcons name="show-chart" color={color} size={size} />
-                    ),
-                }}
-            />
-            <Tabs.Screen
                 name="transactions"
                 options={{
                     headerShown: false,

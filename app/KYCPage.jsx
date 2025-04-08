@@ -7,12 +7,18 @@ import * as MediaLibrary from 'expo-media-library';
 import {
   View,
   Text,
-  TextInput,
+  ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  Image,
+  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
+  ToastAndroid,
   StyleSheet,
   ImageBackground,
-  ActivityIndicator,
-  ToastAndroid,
+  TextInput,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import axios from 'axios';
 import useIdStore from '../store/credentialStore';
@@ -36,10 +42,10 @@ const KYC_VALIDATION_SCHEMA = Yup.object().shape({
   address: Yup.string().required('Address is required'),
   document: Yup.string()
     .required('Document is required')
-    .matches(
-      /^data:.+;base64,.+$/,
-      'Invalid file format'
-    ),
+    .matches(/^data:.+;base64,.+$/, 'Invalid file format'),
+  photo: Yup.string()
+    .required('Photo is required')
+    .matches(/^data:.+;base64,.+$/, 'Invalid image format'),
 });
 
 const KYCPage = () => {
@@ -47,6 +53,8 @@ const KYCPage = () => {
   const userId = useIdStore((state) => state.id);
   const theme = useThemeStore((state) => state.theme);
   const [documentName, setDocumentName] = useState(null);
+  const [photoName, setPhotoName] = useState(null);
+  const [photoUri, setPhotoUri] = useState(null);
 
   const showToast = (message) => {
     ToastAndroid.show(message, ToastAndroid.LONG);
@@ -61,8 +69,6 @@ const KYCPage = () => {
 
       if (result.assets && result.assets.length > 0) {
         const fileAsset = result.assets[0];
-
-        // Copy to FileSystem cache (needed to convert content:// to file://)
         const newPath = `${FileSystem.cacheDirectory}${fileAsset.name}`;
         await FileSystem.copyAsync({
           from: fileAsset.uri,
@@ -83,6 +89,37 @@ const KYCPage = () => {
     }
   };
 
+  const handlePhotoPick = async (setFieldValue) => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['image/jpeg', 'image/png'],
+        copyToCacheDirectory: true,
+      });
+
+      if (result.assets && result.assets.length > 0) {
+        const fileAsset = result.assets[0];
+        const newPath = `${FileSystem.cacheDirectory}${fileAsset.name}`;
+        await FileSystem.copyAsync({
+          from: fileAsset.uri,
+          to: newPath,
+        });
+
+        const base64 = await FileSystem.readAsStringAsync(newPath, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        const mimeType = fileAsset.mimeType || 'image/jpeg';
+        const fullBase64 = `data:${mimeType};base64,${base64}`;
+        setPhotoName(fileAsset.name);
+        setPhotoUri(fileAsset.uri); // used for preview
+        setFieldValue('photo', fullBase64);
+      }
+    } catch (error) {
+      console.error('Photo pick error:', error);
+      showToast('Failed to pick photo');
+    }
+  };
+
   const handleSubmit = async (values, { setSubmitting }) => {
     if (!userId) {
       showToast('User ID not found');
@@ -97,8 +134,9 @@ const KYCPage = () => {
         setSubmitting(false);
         return;
       }
-        const response = await axios.put(
-        `https://really-classic-moray.ngrok-free.app/user/${userId.id}/kyc`,
+
+      const response = await axios.put(
+        `https://really-classic-moray.ngrok-free.app/user/${userId.id !== undefined ? userId.id : userId}/kyc`,
         {
           "fullname": values.fullName,
           "phone": values.phone,
@@ -106,16 +144,18 @@ const KYCPage = () => {
           "country": values.country,
           "address": values.address,
           "file": values.document,
+          "photo": values.photo,
         }
       );
-      console.log('API Response:', values.document);
-      
+
       if (response.status === 200) {
         showToast('KYC updated successfully');
       }
-      navigation.navigate("(tabs)");
+
+      navigation.navigate('(tabs)');
+
       await axios.put(
-        `https://really-classic-moray.ngrok-free.app/user/${userId.id}/updateauth`,
+        `https://really-classic-moray.ngrok-free.app/user/${userId.id !== undefined ? userId.id : userId}/updateauth`,
         { authorized: 'Pending' }
       );
     } catch (error) {
@@ -131,134 +171,179 @@ const KYCPage = () => {
   };
 
   return (
-    <ImageBackground
-      source={
-        theme === 'dark'
-          ? require('../assets/images/bg-Dark.png')
-          : require('../assets/images/bg.png')
-      }
-      style={styles.background}
-    >
-      <View style={styles.container}>
-        <Formik
-          initialValues={{
-            fullName: '',
-            phone: '',
-            dateOfBirth: '',
-            country: '',
-            address: '',
-            document: '',
-          }}
-          validationSchema={KYC_VALIDATION_SCHEMA}
-          onSubmit={handleSubmit}
+    <SafeAreaView style={styles.safeArea}>
+      <ImageBackground
+        source={
+          theme === 'dark'
+            ? require('../assets/images/bg-Dark.png')
+            : require('../assets/images/bg.png')
+        }
+        style={styles.background}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1 }}
         >
-          {({
-            handleChange,
-            handleBlur,
-            handleSubmit,
-            values,
-            errors,
-            touched,
-            isSubmitting,
-            setFieldValue,
-          }) => (
-            <View style={styles.formContainer}>
-              <Text style={styles.title}>Complete Verification</Text>
-              <InputField
-                label="Full Legal Name"
-                placeholder="John Doe"
-                value={values.fullName}
-                onChangeText={handleChange('fullName')}
-                onBlur={handleBlur('fullName')}
-                error={touched.fullName && errors.fullName}
-              />
-              <InputField
-                label="Phone Number"
-                placeholder="+91 1234567890"
-                value={values.phone}
-                onChangeText={handleChange('phone')}
-                onBlur={handleBlur('phone')}
-                keyboardType="phone-pad"
-                error={touched.phone && errors.phone}
-              />
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Date of Birth</Text>
-                <TouchableOpacity
-                  style={styles.datePicker}
-                  onPress={() =>
-                    DateTimePickerAndroid.open({
-                      value: values.dateOfBirth
-                        ? new Date(values.dateOfBirth)
-                        : new Date(),
-                      onChange: (event, date) => {
-                        if (event.type === 'set') {
-                          setFieldValue('dateOfBirth', date.toISOString().split('T')[0]);
-                        }
-                      },
-                      mode: 'date',
-                    })
-                  }
-                >
-                  <Text
-                    style={{
-                      fontSize: 16,
-                      color: values.dateOfBirth ? '#333' : '#999',
-                    }}
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <Formik
+              initialValues={{
+                fullName: '',
+                phone: '',
+                dateOfBirth: '',
+                country: '',
+                address: '',
+                document: '',
+                photo: '',
+              }}
+              validationSchema={KYC_VALIDATION_SCHEMA}
+              onSubmit={handleSubmit}
+            >
+              {({
+                handleChange,
+                handleBlur,
+                handleSubmit,
+                values,
+                errors,
+                touched,
+                isSubmitting,
+                setFieldValue,
+              }) => (
+                <View style={styles.formContainer}>
+                  <Text style={styles.title}>Complete Verification</Text>
+
+                  <InputField
+                    label="Full Legal Name"
+                    placeholder="John Doe"
+                    value={values.fullName}
+                    onChangeText={handleChange('fullName')}
+                    onBlur={handleBlur('fullName')}
+                    error={touched.fullName && errors.fullName}
+                  />
+
+                  <InputField
+                    label="Phone Number"
+                    placeholder="+91 1234567890"
+                    value={values.phone}
+                    onChangeText={handleChange('phone')}
+                    onBlur={handleBlur('phone')}
+                    keyboardType="phone-pad"
+                    error={touched.phone && errors.phone}
+                  />
+
+                  
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Date of Birth</Text>
+                    <TouchableOpacity
+                      style={styles.datePicker}
+                      onPress={() =>
+                        DateTimePickerAndroid.open({
+                          value: values.dateOfBirth
+                            ? new Date(values.dateOfBirth)
+                            : new Date(),
+                          onChange: (event, date) => {
+                            if (event.type === 'set') {
+                              setFieldValue(
+                                'dateOfBirth',
+                                date.toISOString().split('T')[0]
+                              );
+                            }
+                          },
+                          mode: 'date',
+                        })
+                      }
+                    >
+                      <Text
+                        style={[
+                          styles.dateText,
+                          {
+                            color: values.dateOfBirth ? '#333' : '#999',
+                          },
+                        ]}
+                      >
+                        {values.dateOfBirth || 'Select Date of Birth'}
+                      </Text>
+                    </TouchableOpacity>
+                    {touched.dateOfBirth && errors.dateOfBirth && (
+                      <Text style={styles.errorText}>{errors.dateOfBirth}</Text>
+                    )}
+                  </View>
+
+                  {/* Country Dropdown */}
+                  <CountryDropdown
+                    values={values}
+                    setFieldValue={setFieldValue}
+                    handleBlur={handleBlur}
+                    touched={touched}
+                    errors={errors}
+                  />
+
+                  <InputField
+                    label="Full Address"
+                    placeholder="123 Main St, New York, NY 10001"
+                    value={values.address}
+                    onChangeText={handleChange('address')}
+                    onBlur={handleBlur('address')}
+                    multiline
+                    numberOfLines={3}
+                    error={touched.address && errors.address}
+                  />
+
+                  {/* Document Upload */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Upload ID Document (PDF)</Text>
+                    <TouchableOpacity
+                      style={{ backgroundColor: '#000', padding: 12, borderRadius: 10 }}
+                      onPress={() => handleDocumentPick(setFieldValue)}
+                    >
+                      <Text style={styles.buttonText}>
+                        {documentName || 'Choose Document'}
+                      </Text>
+                    </TouchableOpacity>
+                    {touched.document && errors.document && (
+                      <Text style={styles.errorText}>{errors.document}</Text>
+                    )}
+                  </View>
+
+                  {/* Photo Upload */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Upload Photo</Text>
+                    <TouchableOpacity
+                      style={{ backgroundColor: '#000', padding: 12, borderRadius: 10 }}
+                      onPress={() => handlePhotoPick(setFieldValue)}
+                    >
+                      <Text style={styles.buttonText}>
+                        {photoName || 'Choose Photo'}
+                      </Text>
+                    </TouchableOpacity>
+                    {touched.photo && errors.photo && (
+                      <Text style={styles.errorText}>{errors.photo}</Text>
+                    )}
+                    {photoUri && (
+                      <Image
+                        source={{ uri: photoUri }}
+                        style={styles.previewImage}
+                        resizeMode="contain"
+                      />
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    style={styles.submitButton}
+                    onPress={handleSubmit}
+                    disabled={isSubmitting}
                   >
-                    {values.dateOfBirth || 'Select Date of Birth'}
-                  </Text>
-                </TouchableOpacity>
-                {touched.dateOfBirth && errors.dateOfBirth && (
-                  <Text style={styles.errorText}>{errors.dateOfBirth}</Text>
-                )}
-              </View>
-              <CountryDropdown
-                values={values}
-                setFieldValue={setFieldValue}
-                handleBlur={handleBlur}
-                touched={touched}
-                errors={errors}
-              />
-              <InputField
-                label="Full Address"
-                placeholder="123 Main St, New York, NY 10001"
-                value={values.address}
-                onChangeText={handleChange('address')}
-                onBlur={handleBlur('address')}
-                multiline
-                numberOfLines={3}
-                error={touched.address && errors.address}
-              />
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Upload ID Document</Text>
-                <TouchableOpacity
-                  style={[styles.uploadButton, documentName && styles.uploaded]}
-                  onPress={() => handleDocumentPick(setFieldValue)}
-                >
-                  <Text style={styles.buttonText}>
-                    {documentName ? documentName : 'Choose Document'}
-                  </Text>
-                </TouchableOpacity>
-                {touched.document && errors.document && (
-                  <Text style={styles.errorText}>{errors.document}</Text>
-                )}
-              </View>
-              <TouchableOpacity
-                style={styles.submitButton}
-                onPress={handleSubmit}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.buttonText}>Complete Verification</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
-        </Formik>
-      </View>
-    </ImageBackground>
+                    {isSubmitting ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={styles.buttonText}>Complete Verification</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+            </Formik>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </ImageBackground >
+    </SafeAreaView>
   );
 };
 
@@ -291,6 +376,95 @@ const InputField = ({
 );
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+
+  formContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 24,
+    color: '#111827',
+  },
+
+  inputContainer: {
+    marginBottom: 16,
+  },
+
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#374151',
+  },
+
+  errorText: {
+    color: '#EF4444',
+    fontSize: 13,
+    marginTop: 4,
+  },
+
+  datePicker: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 10,
+    padding: 12,
+    backgroundColor: '#F3F4F6',
+  },
+
+  dateText: {
+    fontSize: 16,
+  },
+
+  uploadButton: {
+    backgroundColor: '#000',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+
+  uploaded: {
+    backgroundColor: '#000',
+    color: "#000"
+  },
+
+  previewImage: {
+    width: '100%',
+    height: 200,
+    marginTop: 12,
+    borderRadius: 12,
+  },
+
+  submitButton: {
+    backgroundColor: '#6366F1',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 24,
+  },
+
+  buttonText: {
+    color: '#000',
+    fontWeight: '600',
+    fontSize: 16,
+  },
   background: {
     flex: 1,
     resizeMode: 'cover',
@@ -357,6 +531,14 @@ const styles = StyleSheet.create({
   },
   uploaded: {
     backgroundColor: '#E5FCE5',
+  },
+  previewImage: {
+    width: '100%',
+    height: 200,
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ccc',
   },
   submitButton: {
     backgroundColor: '#6339F9',

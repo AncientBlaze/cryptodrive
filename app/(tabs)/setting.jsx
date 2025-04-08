@@ -1,4 +1,4 @@
-import { useNavigation } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   View,
@@ -10,6 +10,7 @@ import {
   ImageBackground,
   ToastAndroid,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -20,10 +21,14 @@ import Modal from 'react-native-modal';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import React from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 
 const PasswordSchema = Yup.object().shape({
   oldPassword: Yup.string().required('Old password is required'),
-  newPassword: Yup.string().min(6, 'Password too short!').required('New password is required'),
+  newPassword: Yup.string()
+    .min(6, 'Password too short!')
+    .required('New password is required')
+    .notOneOf([Yup.ref('oldPassword')], 'New password must be different'),
 });
 
 const SettingItem = React.memo(({ icon, title, subtitle, component, action, styles }) => (
@@ -44,12 +49,12 @@ const SettingsScreen = () => {
   const [kyc, setKyc] = useState(null);
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [loading, setLoading] = useState(true);
   const theme = useThemeStore((state) => state.theme);
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
   const navigation = useNavigation();
-  const id = useIdStore((state)  => state.id); 
-
-  console.log(`id Debug from Settings: ${id}`); // Log the id to check if it's being retrieved correctly
+  const router = useRouter();
+  const id = useIdStore((state) => state.id);
 
   const toggleModal = () => setModalVisible(!isModalVisible);
   const showToast = (message) => ToastAndroid.show(message, ToastAndroid.LONG);
@@ -58,22 +63,59 @@ const SettingsScreen = () => {
 
   const fetchUserData = async () => {
     try {
-      const response = await axios.get(`https://really-classic-moray.ngrok-free.app/user/get/${id}`);
+      const response = await axios.get(`https://really-classic-moray.ngrok-free.app/user/get/${id.id === undefined ? id : id.id}`);
       const userData = response.data.data;
-      setKyc(userData[0].authorized);
+
+      if (userData?.length > 0) {
+        setKyc(userData[0].authorized || null);
+      } else {
+        setKyc(null);
+      }
     } catch (error) {
       console.error('Error fetching user data:', error);
+      setKyc(null);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchUserData();
-  }, []);
+  }, [id.id]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchUserData();
+    }, [id])
+  );
 
   const handleLogout = () => {
-    navigation.navigate('login');
     useIdStore.getState().clearId();
     useIdStore.getState().clearSession();
+    router.replace('/login');
+  };
+
+
+  const handlePasswordSubmit = async (values, { setSubmitting, resetForm }) => {
+    try {
+      if (values.oldPassword === values.newPassword) {
+        showToast('New password must be different');
+        return;
+      }
+
+      await axios.put(`https://really-classic-moray.ngrok-free.app/user/${id.id === undefined ? id : id.id}/changePassword`, values);
+      showToast('Password changed successfully');
+      resetForm();
+      toggleModal();
+    } catch (error) {
+      if (error.response?.status === 400) {
+        showToast('Old password is incorrect');
+      } else {
+        showToast('Failed to change password');
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const goToProfile = () => navigation.navigate('profile');
@@ -120,16 +162,16 @@ const SettingsScreen = () => {
             />
           ),
         },
-        { icon: 'language', title: 'App Language', subtitle: 'English', action: goToLanguage },
-        { icon: 'attach-money', title: 'Default Currency', subtitle: 'USD', action: goToCurrency },
+        { icon: 'language', title: 'App Language', subtitle: 'English', action: () => showToast('This feature is under development') },
+        { icon: 'attach-money', title: 'Default Currency', subtitle: 'INR', action: () => showToast('This feature is under development') },
       ],
     },
     {
       title: 'Support & Legal',
       data: [
-        { icon: 'help', title: 'Help Center', action: goToHelp },
-        { icon: 'description', title: 'Terms of Service', action: goToTerms },
-        { icon: 'policy', title: 'Privacy Policy', action: goToPrivacy },
+        { icon: 'help', title: 'Help Center', action: () => showToast('This feature is under development') },
+        { icon: 'description', title: 'Terms of Service', action: () => showToast('This feature is under development') },
+        { icon: 'policy', title: 'Privacy Policy', action: () => showToast('This feature is under development') },
       ],
     },
   ];
@@ -139,6 +181,11 @@ const SettingsScreen = () => {
       source={theme === 'dark' ? require('../../assets/images/bg-Dark.png') : require('../../assets/images/bg.png')}
       style={styles.background}
     >
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+        </View>
+      )}
       <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
         <Text style={styles.header}>Settings</Text>
         {settingsSections.map((section, index) => (
@@ -173,19 +220,7 @@ const SettingsScreen = () => {
           <Formik
             initialValues={{ oldPassword: '', newPassword: '' }}
             validationSchema={PasswordSchema}
-            onSubmit={async (values, { setSubmitting, resetForm }) => {
-              try {
-                const id = useIdStore.getState().id;
-                await axios.put(`https://really-classic-moray.ngrok-free.app/user/${id}/changePassword`, values);
-                showToast('Password changed successfully');
-                resetForm();
-                toggleModal();
-              } catch (error) {
-                showToast('Failed to change password');
-              } finally {
-                setSubmitting(false);
-              }
-            }}
+            onSubmit={handlePasswordSubmit}
           >
             {({ handleChange, handleBlur, handleSubmit, values, errors, touched, isSubmitting }) => {
               const fields = [
@@ -376,3 +411,4 @@ const createStyles = (theme) => StyleSheet.create({
 });
 
 export default SettingsScreen;
+
