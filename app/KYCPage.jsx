@@ -138,7 +138,7 @@ const KYCPage = () => {
       const response = await axios.put(
         `https://really-classic-moray.ngrok-free.app/user/${userId.id !== undefined ? userId.id : userId}/kyc`,
         {
-          "fullname": values.fullName,
+          "fullName": values.fullName,
           "phone": values.phone,
           "dateOfBirth": values.dateOfBirth,
           "country": values.country,

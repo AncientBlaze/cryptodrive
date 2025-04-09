@@ -31,7 +31,7 @@ const profile = () => {
 
       try {
         const response = await axios.get(
-          `https://really-classic-moray.ngrok-free.app/user/get/${id}`
+          `https://really-classic-moray.ngrok-free.app/user/get/${id.id === undefined ? id : id.id}`
         );
         setUserData(response.data.data);
       } catch (error) {
@@ -63,7 +63,7 @@ const profile = () => {
     );
   }
 
-  const { username, email, phone, country, address, dateOfBirth, coin } = userData[0];
+  const { fullName,username, email, phone, country, address, dateOfBirth, coin } = userData[0];
 
   const getInitials = (name) => {
     return name
@@ -88,7 +88,7 @@ const profile = () => {
             <Text style={styles.avatarText}>{getInitials(username)}</Text>
           </View>
 
-          <Text style={[styles.name, theme === 'dark' ? styles.darkName : styles.lightName]}>{username}</Text>
+          <Text style={[styles.name, theme === 'dark' ? styles.darkName : styles.lightName]}>{fullName}</Text>
 
           <TouchableOpacity style={[styles.coinContainer, theme === 'dark' ? styles.darkCoinContainer : styles.lightCoinContainer]}>
             <Image
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
-    gap: 10,
+    gap: 20,
   },
   cardTitle: {
     fontSize: 18,
