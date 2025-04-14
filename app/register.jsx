@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState } from 'react';
 import { SafeAreaView, ScrollView, ImageBackground, Text, StyleSheet, View, StatusBar } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import { Formik } from 'formik';
@@ -30,7 +30,7 @@ const validationSchema = Yup.object().shape({
 
 const RegisterPage = () => {
   const setId = useIdStore((state) => state.setId);
-
+  const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation();
 
   const showToast = (message) => {
@@ -107,8 +107,9 @@ const RegisterPage = () => {
                     onChangeText={handleChange('password')}
                     onBlur={handleBlur('password')}
                     value={values.password}
-                    secureTextEntry
+                    secureTextEntry={!showPassword}
                     error={touched.password && !!errors.password}
+                    right={<TextInput.Icon icon={showPassword ? "eye-off" : "eye"} onPress={() => setShowPassword((prev) => !prev)} color={showPassword ? "#664d9a" : "#a461ff"} />}
                   />
                   {touched.password && errors.password && (
                     <Text style={styles.errorText}>{errors.password}</Text>

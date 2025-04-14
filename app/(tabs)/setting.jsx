@@ -60,38 +60,37 @@ const SettingsScreen = () => {
   const showToast = (message) => ToastAndroid.show(message, ToastAndroid.LONG);
 
   const styles = useMemo(() => createStyles(theme), [theme]);
+  console.log(id);
 
   const fetchUserData = async () => {
     try {
       const response = await axios.get(`https://really-classic-moray.ngrok-free.app/user/get/${id.id === undefined ? id : id.id}`);
       const userData = response.data.data;
-
       if (userData?.length > 0) {
-        setKyc(userData[0].authorized || null);
-      } else {
-        setKyc(null);
+        setKyc(userData[0].authorized || 1234);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
-      setKyc(null);
     } finally {
       setLoading(false);
     }
   };
-
+  
   useEffect(() => {
     fetchUserData();
-  }, [id.id]);
+  }, [id.id === undefined ? id : id.id]);
 
   useFocusEffect(
     React.useCallback(() => {
       fetchUserData();
-    }, [id])
+    }, [id.id === undefined ? id : id.id])
   );
 
   const handleLogout = () => {
     useIdStore.getState().clearId();
     useIdStore.getState().clearSession();
+    setKyc(null);
+    showToast('Logged out successfully');
     router.replace('/login');
   };
 
@@ -120,11 +119,6 @@ const SettingsScreen = () => {
 
   const goToProfile = () => navigation.navigate('profile');
   const goToKYC = () => navigation.navigate('KYCPage');
-  const goToLanguage = () => navigation.navigate('Language');
-  const goToCurrency = () => navigation.navigate('Currency');
-  const goToHelp = () => navigation.navigate('Help');
-  const goToTerms = () => navigation.navigate('Terms');
-  const goToPrivacy = () => navigation.navigate('Privacy');
 
   const settingsSections = [
     {

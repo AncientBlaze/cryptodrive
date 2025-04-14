@@ -6,7 +6,7 @@ import {
   updateAdmin,
   getAdminByID,
   getAdminByEmailPassword
-} from "../controllers/admin.controller.js";
+} from "../../../newBackend/Backend/src/controllers/admin.controller.js";
 import multer from "multer";
 import path from "path";
 

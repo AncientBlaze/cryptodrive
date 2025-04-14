@@ -1,5 +1,6 @@
 import Transaction from "../models/Transaction.model.js";
 
+// ✅ INSERT TRANSACTION
 const insert = async (req, res) => {
   const { buyer, type, transactionProof, amount, coin, image } = req.body;
 
@@ -25,6 +26,7 @@ const insert = async (req, res) => {
   }
 };
 
+// ✅ GET ALL TRANSACTIONS
 const getAllData = async (req, res) => {
   try {
     const response = await Transaction.find().populate("buyer");
@@ -48,6 +50,7 @@ const getAllData = async (req, res) => {
   }
 };
 
+// ✅ UPDATE STATUS
 const updateStatus = async (req, res) => {
   const { id } = req.body;
 
@@ -77,32 +80,4 @@ const updateStatus = async (req, res) => {
   }
 };
 
-const getTransactionById = async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    let response = await Transaction.find();
-
-    if (response.length > 0) {
-      response = response.filter((item) => item.buyer._id == id);
-
-      return res.status(200).send({
-        status: true,
-        data: response,
-      });
-    } else {
-      return res.status(404).send({
-        status: false,
-        message: "No transactions found for this buyer",
-      });
-    }
-  } catch (error) {
-    return res.status(500).send({
-      status: false,
-      message: error.message,
-    });
-  }
-};
-
-
-export { insert, getAllData, updateStatus, getTransactionById };
+export { insert, getAllData, updateStatus };

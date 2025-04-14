@@ -16,9 +16,8 @@ import {
   Platform,
   ToastAndroid,
   StyleSheet,
-  ImageBackground,
   TextInput,
-  TouchableWithoutFeedback,
+  ImageBackground,
 } from 'react-native';
 import axios from 'axios';
 import useIdStore from '../store/credentialStore';
@@ -28,7 +27,8 @@ import CountryDropdown from '../utils/CountryDropdown';
 import { useNavigation } from 'expo-router';
 
 const KYC_VALIDATION_SCHEMA = Yup.object().shape({
-  fullName: Yup.string().required('Full name is required'),
+  firstName: Yup.string().required('First name is required'),
+  lastName: Yup.string().required('Last name is required'),
   phone: Yup.string()
     .matches(
       /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/,
@@ -111,7 +111,7 @@ const KYCPage = () => {
         const mimeType = fileAsset.mimeType || 'image/jpeg';
         const fullBase64 = `data:${mimeType};base64,${base64}`;
         setPhotoName(fileAsset.name);
-        setPhotoUri(fileAsset.uri); // used for preview
+        setPhotoUri(fileAsset.uri);
         setFieldValue('photo', fullBase64);
       }
     } catch (error) {
@@ -127,6 +127,8 @@ const KYCPage = () => {
       return;
     }
 
+    const fullName = `${values.firstName} ${values.lastName}`;
+
     try {
       const permission = await MediaLibrary.requestPermissionsAsync();
       if (permission.status !== 'granted') {
@@ -138,13 +140,13 @@ const KYCPage = () => {
       const response = await axios.put(
         `https://really-classic-moray.ngrok-free.app/user/${userId.id !== undefined ? userId.id : userId}/kyc`,
         {
-          "fullName": values.fullName,
-          "phone": values.phone,
-          "dateOfBirth": values.dateOfBirth,
-          "country": values.country,
-          "address": values.address,
-          "file": values.document,
-          "photo": values.photo,
+          fullName,
+          phone: values.phone,
+          dateOfBirth: values.dateOfBirth,
+          country: values.country,
+          address: values.address,
+          file: values.document,
+          photo: values.photo,
         }
       );
 
@@ -160,9 +162,7 @@ const KYCPage = () => {
       );
     } catch (error) {
       const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        'An unexpected error occurred';
+        error.response?.data?.message || error.message || 'An unexpected error occurred';
       console.error('API Error:', errorMessage);
       showToast(`Error: ${errorMessage}`);
     } finally {
@@ -187,7 +187,8 @@ const KYCPage = () => {
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <Formik
               initialValues={{
-                fullName: '',
+                firstName: '',
+                lastName: '',
                 phone: '',
                 dateOfBirth: '',
                 country: '',
@@ -212,12 +213,21 @@ const KYCPage = () => {
                   <Text style={styles.title}>Complete Verification</Text>
 
                   <InputField
-                    label="Full Legal Name"
-                    placeholder="John Doe"
-                    value={values.fullName}
-                    onChangeText={handleChange('fullName')}
-                    onBlur={handleBlur('fullName')}
-                    error={touched.fullName && errors.fullName}
+                    label="First Name"
+                    placeholder="John"
+                    value={values.firstName}
+                    onChangeText={handleChange('firstName')}
+                    onBlur={handleBlur('firstName')}
+                    error={touched.firstName && errors.firstName}
+                  />
+
+                  <InputField
+                    label="Last Name"
+                    placeholder="Doe"
+                    value={values.lastName}
+                    onChangeText={handleChange('lastName')}
+                    onBlur={handleBlur('lastName')}
+                    error={touched.lastName && errors.lastName}
                   />
 
                   <InputField
@@ -230,16 +240,13 @@ const KYCPage = () => {
                     error={touched.phone && errors.phone}
                   />
 
-                  
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>Date of Birth</Text>
                     <TouchableOpacity
                       style={styles.datePicker}
                       onPress={() =>
                         DateTimePickerAndroid.open({
-                          value: values.dateOfBirth
-                            ? new Date(values.dateOfBirth)
-                            : new Date(),
+                          value: values.dateOfBirth ? new Date(values.dateOfBirth) : new Date(),
                           onChange: (event, date) => {
                             if (event.type === 'set') {
                               setFieldValue(
@@ -252,14 +259,10 @@ const KYCPage = () => {
                         })
                       }
                     >
-                      <Text
-                        style={[
-                          styles.dateText,
-                          {
-                            color: values.dateOfBirth ? '#333' : '#999',
-                          },
-                        ]}
-                      >
+                      <Text style={[
+                        styles.dateText,
+                        { color: values.dateOfBirth ? '#333' : '#999' }
+                      ]}>
                         {values.dateOfBirth || 'Select Date of Birth'}
                       </Text>
                     </TouchableOpacity>
@@ -268,7 +271,6 @@ const KYCPage = () => {
                     )}
                   </View>
 
-                  {/* Country Dropdown */}
                   <CountryDropdown
                     values={values}
                     setFieldValue={setFieldValue}
@@ -288,11 +290,10 @@ const KYCPage = () => {
                     error={touched.address && errors.address}
                   />
 
-                  {/* Document Upload */}
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>Upload ID Document (PDF)</Text>
                     <TouchableOpacity
-                      style={{ backgroundColor: '#000', padding: 12, borderRadius: 10 }}
+                      style={styles.uploadButton}
                       onPress={() => handleDocumentPick(setFieldValue)}
                     >
                       <Text style={styles.buttonText}>
@@ -304,11 +305,10 @@ const KYCPage = () => {
                     )}
                   </View>
 
-                  {/* Photo Upload */}
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>Upload Photo</Text>
                     <TouchableOpacity
-                      style={{ backgroundColor: '#000', padding: 12, borderRadius: 10 }}
+                      style={styles.uploadButton}
                       onPress={() => handlePhotoPick(setFieldValue)}
                     >
                       <Text style={styles.buttonText}>
@@ -326,6 +326,7 @@ const KYCPage = () => {
                       />
                     )}
                   </View>
+
                   <TouchableOpacity
                     style={styles.submitButton}
                     onPress={handleSubmit}
@@ -342,7 +343,7 @@ const KYCPage = () => {
             </Formik>
           </ScrollView>
         </KeyboardAvoidingView>
-      </ImageBackground >
+      </ImageBackground>
     </SafeAreaView>
   );
 };
@@ -374,6 +375,8 @@ const InputField = ({
     {error && <Text style={styles.errorText}>{error}</Text>}
   </View>
 );
+
+
 
 const styles = StyleSheet.create({
   safeArea: {

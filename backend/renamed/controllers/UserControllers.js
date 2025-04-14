@@ -200,7 +200,8 @@ const register = async (req, res) => {
 };
 
 const updateAuthentication = async (req, res) => {
-  const { id, authorized } = req.body;
+  const { id } = req.params;
+  const { authorized } = req.body;
 
   try {
     const response = await User.updateOne({ _id: id }, { authorized: authorized });
@@ -218,10 +219,10 @@ const updateAuthentication = async (req, res) => {
 
 const validateKyc = async (req, res) => {
   const { id } = req.params;
-  const { file, fullName, phone, dateOfBirth, country, address, kyc } = req.body;
+  const { photo, file, fullName, phone, dateOfBirth, country, address, kyc } = req.body;
 
   try {
-    const response = await User.updateOne({ _id: id }, { file, fullName, phone, dateOfBirth, country, address, kyc });
+    const response = await User.updateOne({ _id: id }, { photo, file, fullName, phone, dateOfBirth, country, address, kyc });
     res.send({
       status: true,
       data: response
@@ -282,29 +283,5 @@ const changePass = async (req, res) => {
   }
 };
 
-const userget = async (req, res) => {
-  try {
-    const response = await User.find();
 
-    if(response) {
-      return res.send({
-        status: true,
-        data: response
-      })
-    } else {
-      return res.send({
-        status: false,
-        message: "No users found"
-      })
-    }
-  } catch (error) {
-    return res.send({
-      status: false,
-      error: error
-    })
-  }
-}
-
-export { 
-  insertUser, updateCoin, getloggedUser, getUserByName, login, register, updateAuthentication, validateKyc, changePass, userget
-};
+export { insertUser, updateCoin, getloggedUser, getUserByName, login, register, updateAuthentication, validateKyc, changePass };

@@ -34,25 +34,52 @@ const getCoin = async (req, res) => {
 
 const updateCoin = async (req, res) => {
     try {
-        const { id, updatedPrice } = req.body;
-
-        if (!id || updatedPrice === undefined) {
-            return res.status(400).json({ success: false, message: "ID and updatedPrice are required." });
+      const { id, updatedPrice } = req.body;
+  
+      if (!id || updatedPrice === undefined) {
+        return res.status(400).json({
+          success: false,
+          message: "ID and updatedPrice are required."
+        });
+      }
+  
+      const numericPrice = parseFloat(updatedPrice);
+  
+      const update = await Coin.updateOne(
+        { _id: id },
+        {
+          $set: { price: numericPrice },
+          $push: {
+            list: {
+              price: numericPrice,
+              date: new Date()
+            }
+          }
         }
-
-        const numericPrice = parseFloat(updatedPrice);
-
-        const response = await Coin.updateOne({ _id: id }, {  price: numericPrice });
-
-        if (response.modifiedCount === 0) {
-            return res.status(404).json({ success: false, message: "Coin not found or price unchanged." });
-        }
-
-        res.status(200).json({ success: true, data: response });
+      );
+  
+      if (update.modifiedCount === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Coin not found or no changes made."
+        });
+      }
+  
+      res.status(200).json({
+        success: true,
+        message: "Price updated and pushed to history list.",
+        data: update
+      });
+  
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
     }
-};
+  };
+  
+
 
 export {
     insert,

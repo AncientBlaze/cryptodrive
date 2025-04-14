@@ -14,6 +14,7 @@ import {
 import axios from "axios";
 import useThemeStore from "../../store/themeStore.js";
 import useIdStore from "../../store/credentialStore.js";
+import { Ionicons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
 const CARD_MARGIN = 12;
@@ -153,10 +154,44 @@ const Wallet = () => {
           <Text style={styles(theme).headerTitle}>Wallet Information</Text>
           <View style={styles(theme).marketCapCard}>
             <Text style={styles(theme).marketCapLabel}>{kycStatus}</Text>
-            <Text style={styles(theme).marketCapValue}>{userData.username}</Text>
+            <Image
+              source={require("../../assets/images/coinIcon.png")}
+              style={{ width: 20, height: 20, marginRight: 5, textAlign: "center" }}
+            />
+            <Text style={styles(theme).marketCapValue}>
+              {totalBalance.toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </Text>
+            <Text style={styles(theme).marketCapValue}>{userData.fullName}</Text>
             <Text style={styles(theme).marketCapChange}>
               Gold Coins: {userData.coin}
             </Text>
+            <View style={styles(theme).gridview}>
+              
+              <TouchableOpacity
+                style={styles(theme).button}
+                onPress={() => navigation.navigate("send")}
+              >
+                <Ionicons name="flash" size={24} color="lime" />
+                <Text style={styles(theme).buttonText}>Add</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles(theme).button}
+                onPress={() => navigation.navigate("send")}
+              >
+                <Ionicons name="arrow-up" size={24} color="lime" />
+                <Text style={styles(theme).buttonText}>Send</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles(theme).button}
+                onPress={() => navigation.navigate("receive")}
+              >
+                <Ionicons name="arrow-down" size={24} color="lime" />
+                <Text style={styles(theme).buttonText}>Receive</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -196,7 +231,7 @@ const Wallet = () => {
 };
 
 
-const styles = (theme = "light") =>
+const styles = (theme) =>
   StyleSheet.create({
     background: {
       flex: 1,
@@ -229,17 +264,20 @@ const styles = (theme = "light") =>
       fontSize: 14,
       fontWeight: "500",
       marginBottom: 4,
+      textAlign: "center",
     },
     marketCapValue: {
       color: theme === "dark" ? "#FFFFFF" : "#1A1A1A",
       fontSize: 24,
       fontWeight: "700",
       marginBottom: 4,
+      textAlign: "center",
     },
     marketCapChange: {
       color: "#28C76F",
       fontSize: 14,
       fontWeight: "600",
+      textAlign: "center",
     },
     gridContainer: {
       paddingHorizontal: CARD_MARGIN / 2,
@@ -336,6 +374,26 @@ const styles = (theme = "light") =>
     retryText: {
       color: "#FFF",
       fontWeight: "600",
+    },
+    button: {
+      backgroundColor: theme === "dark" ? "#6366F1" : "#4F46E5",
+      borderRadius: 10,
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      marginTop: 10,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    buttonText: {
+      color: "#FFF",
+      fontWeight: "600",
+      textAlign: "center",
+    },
+    gridview: {
+      flexDirection: "row",
+      justifyContent: "center",
+      marginTop: 10,
+      gap: 10,
     },
   });
 

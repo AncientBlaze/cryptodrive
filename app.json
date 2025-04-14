@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "cryptodrive",
-    "slug": "cryptodrive",
-    "version": "1.0.0",
+    "name": "goldcoin",
+    "slug": "goldcoin",
+    "version": "1.0.01",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",

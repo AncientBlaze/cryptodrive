@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -7,14 +7,14 @@ import {
   StyleSheet,
   View,
   StatusBar,
-  ToastAndroid
+  ToastAndroid,
 } from "react-native";
 import { TextInput, Button } from "react-native-paper";
 import { Formik } from "formik";
 import * as Yup from "yup";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
-import useIdStore from "../store/credentialStore"; // Import Zustand store
+import useIdStore from "../store/credentialStore";
 import useThemeStore from "../store/themeStore";
 
 const validationSchema = Yup.object().shape({
@@ -24,10 +24,9 @@ const validationSchema = Yup.object().shape({
 
 const LoginPage = () => {
   const navigation = useNavigation();
+  const [showPassword, setShowPassword] = useState(false);
   const setId = useIdStore((state) => state.setId);
   const setKyc = useIdStore((state) => state.setKyc);
-  const kyc = useIdStore.getState().kyc;
-  console.log(kyc);
 
   const theme = useThemeStore.getState().theme;
 
@@ -40,13 +39,7 @@ const LoginPage = () => {
       const response = await axios.post(
         "https://really-classic-moray.ngrok-free.app/user/login",
         values
-      ).then((response) => {
-        return response;
-      }).catch((error) => {
-        console.error("Login error:", error.response?.data || error.message);
-        const errorMessage = error.response?.data?.message || "Login failed";
-        showToast(errorMessage);
-      });
+      );
       setId(response.data.data.id);
       setKyc(response.data.data.authorized);
       console.log("Login response:", response.data.data.id);
@@ -56,7 +49,7 @@ const LoginPage = () => {
       showToast(errorMessage);
     }
   };
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
@@ -96,9 +89,10 @@ const LoginPage = () => {
                     onChangeText={handleChange("password")}
                     onBlur={handleBlur("password")}
                     value={values.password}
-                    secureTextEntry
-                    style={styles.input}
+                    secureTextEntry={!showPassword}
+                    style={styles.passwordInput}
                     error={touched.password && !!errors.password}
+                    right={<TextInput.Icon icon={showPassword ? "eye-off" : "eye"} onPress={() => setShowPassword((prev) => !prev)} color={showPassword ? "#664d9a" : "#a461ff"} />}
                   />
                   {touched.password && errors.password && (
                     <Text style={styles.errorText}>{errors.password}</Text>
@@ -184,6 +178,14 @@ const styles = StyleSheet.create({
   background: {
     flex: 1,
     resizeMode: "contain",
+  },
+  passwordInput: {
+    backgroundColor: "white",
+    marginBottom: 16,
+    borderColor: "#AAA7B4",
+    borderWidth: 1,
+    borderRadius: 8,
+    position: "relative",
   },
 });
 

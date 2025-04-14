@@ -4,10 +4,6 @@ const CoinSchema = new mongoose.Schema({
     price: {
         type: Number,
         default: 10
-    },
-    list : {
-        type: Array,
-        default: []
     }
 }, {timestamps: true});
 
