@@ -2,18 +2,25 @@ import { Stack } from 'expo-router';
 import { StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 <StatusBar hidden />
+import useIdStore from "../store/credentialStore.js";
+
+const { id } = useIdStore.getState();
+
+console.log(`User ID: ${id}`);
 
 export default function RootLayout() {
+
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="login" options={{ headerShown: false }} />
-      <Stack.Screen name="register" options={{ headerShown: false }} />
-      <Stack.Screen name="gotokyc" options={{ headerShown: false }} />
-      <Stack.Screen name="KYCPage" options={{ headerShown: false }} />
-      <Stack.Screen name='+not-found' options={{ headerShown: false }} />
-      <Stack.Screen name='profile' options={{ headerShown: false }} />
+    <Stack screenOptions={{headerShown: false}}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="login" />
+      <Stack.Screen name="register" />
+      <Stack.Screen name="gotokyc" />
+      <Stack.Screen name="KYCPage" />
+      <Stack.Screen name='+not-found' />
+      <Stack.Screen name='profile' />
+      <Stack.Screen name='chatWithUs' options={{headerShown: true,title: "Chat With Us"}}/>
     </Stack>
   );
 }

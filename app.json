@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "goldcoin",
-    "slug": "goldcoin",
-    "version": "1.0.01",
+    "slug": "cryptodrive",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -16,7 +16,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#FFFFFF"
-      }
+      },
+      "usesCleartextTraffic": true
     },
     "web": {
       "bundler": "metro",
@@ -32,8 +33,7 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ],
-      "expo-barcode-scanner"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -48,3 +48,4 @@
     }
   }
 }
+

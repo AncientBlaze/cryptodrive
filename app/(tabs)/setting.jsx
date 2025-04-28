@@ -60,14 +60,13 @@ const SettingsScreen = () => {
   const showToast = (message) => ToastAndroid.show(message, ToastAndroid.LONG);
 
   const styles = useMemo(() => createStyles(theme), [theme]);
-  console.log(id);
 
   const fetchUserData = async () => {
     try {
       const response = await axios.get(`https://really-classic-moray.ngrok-free.app/user/get/${id.id === undefined ? id : id.id}`);
       const userData = response.data.data;
       if (userData?.length > 0) {
-        setKyc(userData[0].authorized || 1234);
+        setKyc(userData[0].authorized);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -75,15 +74,15 @@ const SettingsScreen = () => {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     fetchUserData();
-  }, [id.id === undefined ? id : id.id]);
+  }, [id]);
 
   useFocusEffect(
     React.useCallback(() => {
       fetchUserData();
-    }, [id.id === undefined ? id : id.id])
+    }, [id])
   );
 
   const handleLogout = () => {
@@ -93,7 +92,6 @@ const SettingsScreen = () => {
     showToast('Logged out successfully');
     router.replace('/login');
   };
-
 
   const handlePasswordSubmit = async (values, { setSubmitting, resetForm }) => {
     try {
@@ -157,12 +155,13 @@ const SettingsScreen = () => {
           ),
         },
         { icon: 'language', title: 'App Language', subtitle: 'English', action: () => showToast('This feature is under development') },
-        { icon: 'attach-money', title: 'Default Currency', subtitle: 'INR', action: () => showToast('This feature is under development') },
+        { icon: 'attach-money', title: 'Default Currency', subtitle: 'USD', action: () => showToast('This feature is under development') },
       ],
     },
     {
       title: 'Support & Legal',
       data: [
+        { icon: 'feedback', title: "Chat With Us", action: () => navigation.navigate('chatWithUs') },
         { icon: 'help', title: 'Help Center', action: () => showToast('This feature is under development') },
         { icon: 'description', title: 'Terms of Service', action: () => showToast('This feature is under development') },
         { icon: 'policy', title: 'Privacy Policy', action: () => showToast('This feature is under development') },
@@ -181,7 +180,6 @@ const SettingsScreen = () => {
         </View>
       )}
       <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.header}>Settings</Text>
         {settingsSections.map((section, index) => (
           <View key={index} style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
@@ -198,17 +196,13 @@ const SettingsScreen = () => {
         </TouchableOpacity>
       </ScrollView>
 
+      {/* Modal without animation for testing */}
       <Modal
         isVisible={isModalVisible}
         onBackdropPress={toggleModal}
-        animationIn="fadeIn"
-        animationOut="fadeOut"
-        animationInTiming={300}
-        animationOutTiming={200}
-        backdropTransitionInTiming={300}
-        backdropTransitionOutTiming={200}
-        useNativeDriverForBackdrop
-        useNativeDriver>
+        useNativeDriver
+        backdropColor="rgba(0, 0, 0, 0.5)" // Optional: custom backdrop color
+      >
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>Change Password</Text>
           <Formik
@@ -403,6 +397,7 @@ const createStyles = (theme) => StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
 
 export default SettingsScreen;
 

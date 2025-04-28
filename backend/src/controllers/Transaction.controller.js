@@ -1,5 +1,7 @@
 import Transaction from "../models/Transaction.model.js";
+import User from "../models/User.model.js";
 
+// ✅ INSERT TRANSACTION
 const insert = async (req, res) => {
   const { buyer, type, transactionProof, amount, coin, image } = req.body;
 
@@ -25,6 +27,7 @@ const insert = async (req, res) => {
   }
 };
 
+// ✅ GET ALL TRANSACTIONS
 const getAllData = async (req, res) => {
   try {
     const response = await Transaction.find().populate("buyer");
@@ -48,6 +51,7 @@ const getAllData = async (req, res) => {
   }
 };
 
+// ✅ UPDATE STATUS
 const updateStatus = async (req, res) => {
   const { id } = req.body;
 
@@ -77,25 +81,31 @@ const updateStatus = async (req, res) => {
   }
 };
 
-const getTransactionById = async (req, res) => {
-  const { id } = req.params;
-
+const buyCoinsTransactionProof = async (req, res) => {
+  const { userId, amount, coin, image } = req.body;
   try {
-    let response = await Transaction.find();
-
-    if (response.length > 0) {
-      response = response.filter((item) => item.buyer._id == id);
-
-      return res.status(200).send({
-        status: true,
-        data: response,
-      });
-    } else {
+    const userdata = await User.findById({ _id: userId });
+    console.log(userdata);
+    
+    if (!userdata) {
       return res.status(404).send({
         status: false,
-        message: "No transactions found for this buyer",
+        message: "User not found",
       });
     }
+
+    const response = await Transaction.create({
+      buyer: userId,
+      type: "buy",
+      amount: amount,
+      coin: coin,
+      image: image,
+    });
+
+    return res.status(201).send({
+      status: true,
+      data: response,
+    });
   } catch (error) {
     return res.status(500).send({
       status: false,
@@ -105,4 +115,4 @@ const getTransactionById = async (req, res) => {
 };
 
 
-export { insert, getAllData, updateStatus, getTransactionById };
+export { insert, getAllData, updateStatus, buyCoinsTransactionProof };

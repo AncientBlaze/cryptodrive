@@ -2,6 +2,7 @@ import { Link } from 'expo-router';
 import React, { useEffect } from 'react';
 import { TouchableOpacity, StyleSheet, View, ImageBackground, Image, Text, StatusBar } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import useThemeStore from '../store/themeStore';
 
 const Index = () => {
   useEffect(() => {
@@ -17,22 +18,23 @@ const Index = () => {
     checkSession();
   }, []);
 
+  const theme = useThemeStore((state) => state.theme);
   return (
-    <View style={styles.container}>
+    <View style={styles(theme).container}>
       <StatusBar barStyle={'light-content'} backgroundColor={'#0D0D0D'} />
-      <ImageBackground source={require("../assets/images/bg-Dark.png")} style={styles.background}>
-        <View style={styles.imageContainer}>
+      <ImageBackground source={theme === 'light' ? require("../assets/images/bg.png") : require("../assets/images/bg-Dark.png")} style={styles(theme).background}>
+        <View style={styles(theme).imageContainer}>
           <Image source={require("../assets/images/hero_image.png")} />
-          <Text style={styles.text}>Discover the world of cryptocurrency</Text>
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.loginButton}>
+          <Text style={styles(theme).text}>Discover the world of cryptocurrency</Text>
+          <View style={styles(theme).buttonContainer}>
+            <TouchableOpacity style={styles(theme).loginButton}>
               <Link href="/login">
-                <Text style={styles.loginText}>Login</Text>
+                <Text style={styles(theme).loginText}>Login</Text>
               </Link>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.signUpButton}>
+            <TouchableOpacity style={styles(theme).signUpButton}>
               <Link href="/register">
-                <Text style={styles.buttonText}>Sign Up</Text>
+                <Text style={styles(theme).buttonText}>Sign Up</Text>
               </Link>
             </TouchableOpacity>
           </View>
@@ -42,29 +44,33 @@ const Index = () => {
   );
 };
 
-const styles = StyleSheet.create({
+
+const styles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: theme === 'dark' ? '#121212' : '#FFFFFF',
   },
   background: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#0D0D0D', // Darker background color
+    backgroundColor: theme === 'dark' ? '#0D0D0D' : '#F5F5F5',
   },
   imageContainer: {
     justifyContent: 'center',
     alignItems: 'center',
     flex: 1,
+    marginBottom: 20,
   },
   text: {
-    color: "#F8F6FF",
+    color: theme === 'dark' ? '#F8F6FF' : '#000000',
     fontSize: 28,
-    fontWeight: "bold",
-    textAlign: "center",
+    fontWeight: 'bold',
+    textAlign: 'center',
     width: 327,
     marginTop: 100,
+    paddingHorizontal: 20,
   },
   buttonContainer: {
     marginTop: 20,
@@ -76,34 +82,56 @@ const styles = StyleSheet.create({
   loginButton: {
     marginTop: 20,
     borderWidth: 1,
-    borderColor: '#F8F6FF',
-    backgroundColor: "transparent",
+    borderColor: theme === 'dark' ? '#F8F6FF' : '#000000', 
+    backgroundColor: theme === 'dark' ? 'transparent' : '#0D0D0D',
     borderRadius: 50,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
     alignItems: 'center',
+    minWidth: 150,
+    ...theme === 'dark' ? { shadowColor: '#000', shadowOpacity: 0.25 } : {}, 
   },
   loginText: {
-    color: '#F8F6FF',
+    color: theme === 'dark' ? '#F8F6FF' : '#FFFFFF', 
     fontSize: 16,
     fontWeight: 'bold',
   },
   signUpButton: {
     marginTop: 20,
     borderWidth: 2,
-    borderColor: '#F8F6FF',
-    backgroundColor: "#F8F6FF",
+    borderColor: theme === 'dark' ? '#F8F6FF' : '#0D0D0D', 
+    backgroundColor: theme === 'dark' ? '#F8F6FF' : '#0D0D0D',
     borderRadius: 50,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
     alignItems: 'center',
+    minWidth: 150,
+    ...theme === 'dark' ? { shadowColor: '#000', shadowOpacity: 0.25 } : {}, // Add shadow in dark mode
   },
   buttonText: {
-    color: '#0D0D0D',
+    color: theme === 'dark' ? '#0D0D0D' : '#F8F6FF', // Text is dark on light buttons and vice versa
     fontSize: 16,
     fontWeight: 'bold',
   },
+  // Optional: Style for handling dark mode theme specifically
+  darkTheme: {
+    backgroundColor: '#121212',
+  },
+  lightTheme: {
+    backgroundColor: '#FFFFFF',
+  },
+  // Optional: Additional shadow effect for buttons in dark mode
+  buttonShadow: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.5,
+    elevation: 5,
+  },
 });
+
+
+
 
 export default Index;
 

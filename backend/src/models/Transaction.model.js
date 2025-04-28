@@ -8,19 +8,15 @@ const TransactionSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        required: true
     },
     transactionProof: {
         type: String,
-        required: true
     },
     amount: {
         type: Number,
-        required: true
     },
     coin: {
         type: Number,
-        required: true
     },
     status: {
         type: Boolean,
@@ -28,7 +24,6 @@ const TransactionSchema = new mongoose.Schema({
     },
     image: {
         type: String,
-        required: true
     }
 }, {
     timestamps: true
