@@ -19,7 +19,7 @@ import useIdStore from '../store/credentialStore';
 import Toast from 'react-native-toast-message';
 import useThemeStore from '../store/themeStore';
 
-const API_URL = 'https://really-classic-moray.ngrok-free.app/user/register';
+const API_URL = 'http://209.126.4.145:4000/user/register';
 const ROUTES = {
   KYC: 'gotokyc',
   LOGIN: 'login',
@@ -39,6 +39,8 @@ const validationSchema = Yup.object().shape({
 
 const RegisterPage = () => {
   const setId = useIdStore((state) => state.setId);
+  const getId = useIdStore((state) => state.getId);
+  const id = getId();
   const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation();
   const theme = useThemeStore((state) => state.theme);
@@ -55,7 +57,7 @@ const RegisterPage = () => {
   const handleSubmit = async (values) => {
     try {
       const response = await axios.post(API_URL, values);
-      setId({ id: response.data.data._id });
+      setId(response.data.data._id);
       navigation.navigate(ROUTES.KYC);
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'An unexpected error occurred. Please try again.';

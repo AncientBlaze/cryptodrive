@@ -1,42 +1,48 @@
-import { Stack } from 'expo-router';
-import { StyleSheet } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-<StatusBar hidden />
-import useIdStore from "../store/credentialStore.js";
-
-const { id } = useIdStore.getState();
-
-console.log(`User ID: ${id}`);
+// app/_layout.js
+import { Stack } from "expo-router";
+import { useEffect } from "react";
+import * as ScreenOrientation from "expo-screen-orientation";
+import useIdStore from "../store/credentialStore";
 
 export default function RootLayout() {
+  // 1️⃣ subscribe reactively to your id
+  const id = useIdStore((state) => state.id);
+
+  // 2️⃣ lock portrait
+  useEffect(() => {
+    ScreenOrientation.lockAsync(
+      ScreenOrientation.OrientationLock.PORTRAIT
+    );
+  }, []);
+
+  // 3️⃣ decide which screens to *declare*
+  const screens = !id
+    ? [
+        { name: "login" },
+        { name: "register" },
+      ]
+    : [
+        { name: "index" },
+        { name: "(tabs)" },
+        { name: "gotokyc" },
+        { name: "KYCPage" },
+        { name: "profile" },
+        {
+          name: "chatWithUs",
+          options: { headerShown: true, title: "Chat With Us" },
+        },
+      ];
 
   return (
-    <Stack screenOptions={{headerShown: false}}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="login" />
-      <Stack.Screen name="register" />
-      <Stack.Screen name="gotokyc" />
-      <Stack.Screen name="KYCPage" />
-      <Stack.Screen name='+not-found' />
-      <Stack.Screen name='profile' />
-      <Stack.Screen name='chatWithUs' options={{headerShown: true,title: "Chat With Us"}}/>
+    <Stack screenOptions={{ headerShown: false }}>
+      {screens.map((s) => (
+        <Stack.Screen
+          key={s.name}
+          name={s.name}
+          {...(s.options && { options: s.options })}
+        />
+      ))}
+      <Stack.Screen name="+not-found" />
     </Stack>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1
-  },
-  header: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: "center"
-  },
-  footer: {
-    marginTop: 10,
-    textAlign: 'center',
-  },
-});

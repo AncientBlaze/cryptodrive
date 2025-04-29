@@ -31,7 +31,7 @@ const profile = () => {
 
       try {
         const response = await axios.get(
-          `https://really-classic-moray.ngrok-free.app/user/get/${id.id === undefined ? id : id.id}`
+          `http://209.126.4.145:4000/user/get/${id.id === undefined ? id : id.id}`
         );
         setUserData(response.data.data);
       } catch (error) {

@@ -56,7 +56,7 @@ const dashboardScreen = () => {
   const fetchUserData = useCallback(async () => {
     try {
       const response = await axios.get(
-        `https://really-classic-moray.ngrok-free.app/user/get/${id}`,
+        `http://209.126.4.145:4000/user/get/${id}`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -79,7 +79,7 @@ const dashboardScreen = () => {
   const fetchCurrentGoldCoinPrice = async () => {
     try {
       const response = await axios.get(
-        "https://really-classic-moray.ngrok-free.app/coins/get"
+        "http://209.126.4.145:4000/coins/get"
       );
       const coindata = await response.data.data;
       setCoinValue(coindata[0].price);
@@ -200,7 +200,7 @@ const dashboardScreen = () => {
                 onPress={() => setIsModalVisible(true)}
               >
                 <Ionicons name="flash" size={24} color="lime" />
-                <Text style={styles(theme).buttonText}>Add</Text>
+                <Text style={styles(theme).buttonText}>Buy</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles(theme).button}
@@ -247,6 +247,8 @@ const dashboardScreen = () => {
             keyExtractor={(item) => item.id}
             numColumns={2}
             contentContainerStyle={styles(theme).gridContainer}
+            onRefresh={fetchUserData}
+            refreshing={isLoading}
             ListEmptyComponent={
               <Text
                 style={{ textAlign: "center", color: "#999", marginTop: 40 }}

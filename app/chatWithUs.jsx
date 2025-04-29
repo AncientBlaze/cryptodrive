@@ -18,7 +18,7 @@ import useIdStore from "../store/credentialStore";
 
 const ChatWithUs = () => {
   const userid = useIdStore.getState().id;
-  const API_URL = "https://really-classic-moray.ngrok-free.app";
+  const API_URL = "http://209.126.4.145:4000";
   
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -96,12 +96,6 @@ const ChatWithUs = () => {
 
       setMessages((prev) => [...prev, supportMessage]);
       setIsTyping(false);
-
-      // Optionally, you can also upload this auto-reply to backend
-      // await axios.put(`${API_URL}/update/${userid}`, {
-      //   content: supportMessage.text,
-      //   owner: "admin",
-      // });
     }, 2000);
   };
 

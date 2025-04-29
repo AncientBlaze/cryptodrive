@@ -50,7 +50,7 @@ const Transactions = () => {
   const fetchTransactions = async () => {
     try {
       const response = await axios.post(
-        `https://really-classic-moray.ngrok-free.app/transactions/getById/${id}`
+        `http://209.126.4.145:4000/transactions/getById/${id}`
       );
       const sortedData = response.data.data.sort(
         (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
@@ -117,7 +117,7 @@ const Transactions = () => {
     }
     try {
       const response = await axios.put(
-        `https://really-classic-moray.ngrok-free.app/transactions/uploadImage/${selectedTransaction._id}`,
+        `http://209.126.4.145:4000/transactions/uploadImage/${selectedTransaction._id}`,
         {
           image: uploadedImage,
         }

@@ -6,6 +6,8 @@ import {
   ImageBackground,
   Dimensions,
   ActivityIndicator,
+  ScrollView,
+  RefreshControl,
 } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
 import axios from "axios";
@@ -17,6 +19,7 @@ const Wallet = () => {
   const [coinValue, setCoinValue] = useState(0);
   const [priceHistory, setPriceHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const theme = useThemeStore((state) => state.theme);
   const id = useIdStore((state) => state.id);
 
@@ -32,7 +35,7 @@ const Wallet = () => {
   const fetchUserData = useCallback(async () => {
     try {
       const response = await axios.get(
-        `https://really-classic-moray.ngrok-free.app/user/get/${id}`
+        `http://209.126.4.145:4000/user/get/${id}`
       );
       const result = response.data?.data?.[0];
       if (result) setUserData(result);
@@ -44,7 +47,7 @@ const Wallet = () => {
   const fetchCoinData = useCallback(async () => {
     try {
       const response = await axios.get(
-        "https://really-classic-moray.ngrok-free.app/coins/get"
+        "http://209.126.4.145:4000/coins/get"
       );
       const data = response.data.data;
       setCoinValue(data[0]?.price || 0);
@@ -55,6 +58,12 @@ const Wallet = () => {
       setLoading(false);
     }
   }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([fetchUserData(), fetchCoinData()]);
+    setRefreshing(false);
+  }, [fetchUserData, fetchCoinData]);
 
   useEffect(() => {
     fetchUserData();
@@ -73,15 +82,26 @@ const Wallet = () => {
   }
 
   return (
+    <>
     <ImageBackground
       source={
         theme === "light"
-          ? require("../../assets/images/bg.png")
-          : require("../../assets/images/bg-Dark.png")
+        ? require("../../assets/images/bg.png")
+        : require("../../assets/images/bg-Dark.png")
       }
       style={styles(theme).container}
-    >
-      <View style={styles(theme).content}>
+      >
+      <ScrollView
+        contentContainerStyle={styles(theme).content}
+        refreshControl={
+          <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={[theme === "dark" ? "#000" : "#007AFF"]}
+          tintColor={theme === "dark" ? "#fff" : "#000"}
+          />
+        }
+        >
         <View style={styles(theme).balanceCard}>
           <Text style={styles(theme).balanceLabel}>Your Gold Coins</Text>
           <Text style={styles(theme).balanceValue}>{userData.coin || 0}</Text>
@@ -99,10 +119,10 @@ const Wallet = () => {
         <View style={styles(theme).chartContainer}>
           <Text style={styles(theme).chartTitle}>Price History (24h)</Text>
           <LineChart
-          styles={{
-            borderRadius: 16,
-            padding: 0,
-          }}
+            styles={{
+              borderRadius: 16,
+              padding: 0,
+            }}
             data={priceHistory.map((item) => ({
               value: item.price,
               label: item.timestamp,
@@ -144,13 +164,13 @@ const Wallet = () => {
             animationDuration={900}
             pointerLabelComponent={(item) => (
               <View
-                style={{
-                  backgroundColor: theme === "dark" ? "#333" : "#fff",
-                  padding: 0,
-                  borderRadius: 6,
-                  borderWidth: 1,
-                  borderColor: theme === "dark" ? "#555" : "#ddd",
-                }}
+              style={{
+                backgroundColor: theme === "dark" ? "#333" : "#fff",
+                padding: 0,
+                borderRadius: 6,
+                borderWidth: 1,
+                borderColor: theme === "dark" ? "#555" : "#ddd",
+              }}
               >
                 <Text
                   style={{
@@ -158,15 +178,16 @@ const Wallet = () => {
                     fontSize: 12,
                     fontWeight: "500",
                   }}
-                >
+                  >
                   ${item.value?.toFixed(2)}
                 </Text>
               </View>
             )}
-          />
+            />
         </View>
-      </View>
+      </ScrollView>
     </ImageBackground>
+    </>
   );
 };
 
@@ -177,7 +198,7 @@ const styles = (theme) =>
       padding: 20,
     },
     content: {
-      flex: 1,
+      flexGrow: 1,
       gap: 20,
     },
     loadingContainer: {

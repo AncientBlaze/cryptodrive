@@ -4,21 +4,7 @@ import * as Yup from "yup";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 import * as MediaLibrary from "expo-media-library";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Image,
-  SafeAreaView,
-  KeyboardAvoidingView,
-  Platform,
-  ToastAndroid,
-  StyleSheet,
-  TextInput,
-  ImageBackground,
-} from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, SafeAreaView, KeyboardAvoidingView, Platform, ToastAndroid, StyleSheet, TextInput, ImageBackground } from "react-native";
 import axios from "axios";
 import useIdStore from "../store/credentialStore";
 import useThemeStore from "../store/themeStore";
@@ -50,12 +36,14 @@ const KYC_VALIDATION_SCHEMA = Yup.object().shape({
 
 const KYCPage = () => {
   const navigation = useNavigation();
-  const userId = useIdStore((state) => state.id);
+  const userId = useIdStore((state) => state.getId());
   const theme = useThemeStore((state) => state.theme);
   const [documentName, setDocumentName] = useState(null);
   const [photoName, setPhotoName] = useState(null);
   const [photoUri, setPhotoUri] = useState(null);
-  console.log("Hello From Kyc", userId);
+
+  console.log("User ID From KYCPAGE:", userId);
+
 
   const showToast = (message) => {
     ToastAndroid.show(message, ToastAndroid.LONG);
@@ -130,9 +118,9 @@ const KYCPage = () => {
         setSubmitting(false);
         return;
       }
-      
+
       const kycResponse = await axios.put(
-        `https://really-classic-moray.ngrok-free.app/user/${userId === undefined ? userId.id : userId}/kyc`,
+        `http://209.126.4.145:4000/user/${userId}/kyc`,
         {
           fullName,
           phone: values.phone,
@@ -143,14 +131,14 @@ const KYCPage = () => {
           photo: values.photo,
         }
       );
-      
+
       if (kycResponse.status === 200) {
         showToast("KYC updated successfully");
         navigation.navigate("(tabs)");
       }
 
-        await axios.put(
-        `https://really-classic-moray.ngrok-free.app/user/${userId === undefined ? userId.id : userId}/updateAuthentication`,
+      await axios.put(
+        `http://209.126.4.145:4000/user/${userId}/updateAuthentication`,
         {
           authorized: "Pending",
         }
@@ -386,157 +374,69 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F9FAFB",
   },
-
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-
-  formContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: 24,
-    color: "#111827",
-  },
-
-  inputContainer: {
-    marginBottom: 16,
-  },
-
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 8,
-    color: "#374151",
-  },
-
-  errorText: {
-    color: "#EF4444",
-    fontSize: 13,
-    marginTop: 4,
-  },
-
-  datePicker: {
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 10,
-    padding: 12,
-    backgroundColor: "#F3F4F6",
-  },
-
-  dateText: {
-    fontSize: 16,
-  },
-
-  uploadButton: {
-    backgroundColor: "#000",
-    padding: 12,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-
-  uploaded: {
-    backgroundColor: "#000",
-    color: "#000",
-  },
-
-  previewImage: {
-    width: "100%",
-    height: 200,
-    marginTop: 12,
-    borderRadius: 12,
-  },
-
-  submitButton: {
-    backgroundColor: "#6366F1",
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 24,
-  },
-
-  buttonText: {
-    color: "#000",
-    fontWeight: "600",
-    fontSize: 16,
-  },
   background: {
     flex: 1,
     resizeMode: "cover",
   },
-  container: {
-    flex: 1,
-    padding: 16,
-    justifyContent: "center",
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
   },
   formContainer: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 24,
     marginHorizontal: 8,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 10,
     elevation: 6,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "700",
-    color: "#222",
-    marginBottom: 24,
+    color: "#1F2937",
+    marginBottom: 20,
     textAlign: "center",
   },
   inputContainer: {
     marginBottom: 20,
   },
   label: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
-    color: "#444",
+    color: "#374151",
     marginBottom: 6,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#E5E7EB",
     borderRadius: 12,
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingVertical: Platform.OS === "ios" ? 18 : 14,
     fontSize: 16,
-    backgroundColor: "#fafafa",
-    color: "#222",
+    backgroundColor: "#F9FAFB",
+    color: "#111827",
   },
   errorText: {
     marginTop: 4,
-    color: "#FF3B30",
+    color: "#EF4444",
     fontSize: 12,
     fontWeight: "500",
   },
   datePicker: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#E5E7EB",
     borderRadius: 12,
     padding: 14,
-    backgroundColor: "#fafafa",
+    backgroundColor: "#F9FAFB",
   },
   uploadButton: {
-    backgroundColor: "#F0F0F0",
+    backgroundColor: "#3498db",
     padding: 14,
     borderRadius: 12,
     alignItems: "center",
-  },
-  uploaded: {
-    backgroundColor: "#E5FCE5",
   },
   previewImage: {
     width: "100%",
@@ -544,25 +444,30 @@ const styles = StyleSheet.create({
     marginTop: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#D1D5DB",
   },
   submitButton: {
-    backgroundColor: "#6339F9",
+    backgroundColor: "#6366F1",
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
     marginTop: 28,
-    shadowColor: "#6339F9",
+    shadowColor: "#6366F1",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
   },
   buttonText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 17,
     fontWeight: "600",
   },
+  dateText: {
+    fontSize: 16,
+    color: "#6B7280",
+  },
 });
+
 
 export default KYCPage;

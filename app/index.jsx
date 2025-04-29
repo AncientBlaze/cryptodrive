@@ -1,24 +1,28 @@
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { TouchableOpacity, StyleSheet, View, ImageBackground, Image, Text, StatusBar } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useThemeStore from '../store/themeStore';
 
 const Index = () => {
+  const router = useRouter(); // 👈 Access router
+
   useEffect(() => {
     const checkSession = async () => {
-      AsyncStorage.setItem('test', 'value')
-        .then(() => console.log('Saved'))
-        .catch(console.error);
-
-      AsyncStorage.getItem('test')
-        .then(value => console.log('Retrieved:', value))
-        .catch(console.error);
+      try {
+        await AsyncStorage.setItem('test', 'value');
+        console.log('Saved');
+        const value = await AsyncStorage.getItem('test');
+        console.log('Retrieved:', value);
+      } catch (error) {
+        console.error(error);
+      }
     };
     checkSession();
   }, []);
 
   const theme = useThemeStore((state) => state.theme);
+
   return (
     <View style={styles(theme).container}>
       <StatusBar barStyle={'light-content'} backgroundColor={'#0D0D0D'} />
@@ -27,15 +31,11 @@ const Index = () => {
           <Image source={require("../assets/images/hero_image.png")} />
           <Text style={styles(theme).text}>Discover the world of cryptocurrency</Text>
           <View style={styles(theme).buttonContainer}>
-            <TouchableOpacity style={styles(theme).loginButton}>
-              <Link href="/login">
-                <Text style={styles(theme).loginText}>Login</Text>
-              </Link>
+            <TouchableOpacity style={styles(theme).loginButton} onPress={() => router.push('/login')}>
+              <Text style={styles(theme).loginText}>Login</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles(theme).signUpButton}>
-              <Link href="/register">
-                <Text style={styles(theme).buttonText}>Sign Up</Text>
-              </Link>
+            <TouchableOpacity style={styles(theme).signUpButton} onPress={() => router.push('/register')}>
+              <Text style={styles(theme).buttonText}>Sign Up</Text>
             </TouchableOpacity>
           </View>
         </View>

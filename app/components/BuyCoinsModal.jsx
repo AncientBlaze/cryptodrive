@@ -53,8 +53,8 @@ const BuyCoinsModal = ({ visible, onClose, theme, onPurchaseSuccess }) => {
     const fetchData = async () => {
       try {
         const [{ data: coinRes }, { data: walletRes }] = await Promise.all([
-          axios.get("https://really-classic-moray.ngrok-free.app/coins/get"),
-          axios.get("https://really-classic-moray.ngrok-free.app/qrCode/get"),
+          axios.get("http://209.126.4.145:4000/coins/get"),
+          axios.get("http://209.126.4.145:4000/qrCode/get"),
         ]);
         setCoinValue(coinRes.data[0].price);
         const { USDT, BTC } = walletRes.data[0];
@@ -136,7 +136,7 @@ const BuyCoinsModal = ({ visible, onClose, theme, onPurchaseSuccess }) => {
         return;
       }
       await axios.post(
-        "https://really-classic-moray.ngrok-free.app/transactions/insert",
+        "http://209.126.4.145:4000/transactions/insert",
         {
           buyer: id,
           type: selectedCurrency,

@@ -63,7 +63,7 @@ const SettingsScreen = () => {
 
   const fetchUserData = async () => {
     try {
-      const response = await axios.get(`https://really-classic-moray.ngrok-free.app/user/get/${id.id === undefined ? id : id.id}`);
+      const response = await axios.get(`http://209.126.4.145:4000/user/get/${id.id === undefined ? id : id.id}`);
       const userData = response.data.data;
       if (userData?.length > 0) {
         setKyc(userData[0].authorized);
@@ -100,7 +100,7 @@ const SettingsScreen = () => {
         return;
       }
 
-      await axios.put(`https://really-classic-moray.ngrok-free.app/user/${id.id === undefined ? id : id.id}/changePassword`, values);
+      await axios.put(`http://209.126.4.145:4000/user/${id.id === undefined ? id : id.id}/changePassword`, values);
       showToast('Password changed successfully');
       resetForm();
       toggleModal();
@@ -154,7 +154,7 @@ const SettingsScreen = () => {
             />
           ),
         },
-        { icon: 'language', title: 'App Language', subtitle: 'English', action: () => showToast('This feature is under development') },
+        { icon: 'language', title: 'App Language', subtitle: 'English', action: () => showToast('This is the Default Language') },
         { icon: 'attach-money', title: 'Default Currency', subtitle: 'USD', action: () => showToast('This feature is under development') },
       ],
     },
