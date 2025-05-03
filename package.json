@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
+    "@js-temporal/polyfill": "^0.5.1",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-community/datetimepicker": "8.2.0",
     "@react-native-picker/picker": "2.9.0",
@@ -24,6 +25,7 @@
     "axios": "^1.8.4",
     "date-fns": "^4.1.0",
     "expo": "~52.0.42",
+    "expo-av": "~15.0.2",
     "expo-blur": "~14.0.3",
     "expo-clipboard": "~7.0.1",
     "expo-constants": "~17.0.8",
@@ -46,6 +48,7 @@
     "react-native": "0.76.9",
     "react-native-animatable": "^1.4.0",
     "react-native-chart-kit": "^6.12.0",
+    "react-native-gesture-handler": "^2.25.0",
     "react-native-gifted-charts": "^1.4.59",
     "react-native-modal": "^14.0.0-rc.1",
     "react-native-paper": "^5.13.1",

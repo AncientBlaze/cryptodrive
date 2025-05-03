@@ -9,8 +9,10 @@ import {
   TouchableOpacity,
   Image,
   ToastAndroid,
+  Platform,
+  RefreshControl
 } from "react-native";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import useThemeStore from "../../store/themeStore";
 import { format } from "date-fns";
@@ -19,9 +21,30 @@ import { Feather } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 
+// Utility function for icon mapping
+const getIconName = (type) => {
+  switch (type.toLowerCase()) {
+    case "deposit": return "arrow-down-circle";
+    case "withdrawal": return "arrow-up-circle";
+    case "transfer": return "repeat";
+    case "payment": return "credit-card";
+    default: return "activity";
+  }
+};
+
+// Platform-aware toast
+const showToast = (message) => {
+  if (Platform.OS === "android") {
+    ToastAndroid.show(message, ToastAndroid.LONG);
+  } else {
+    console.log("Toast:", message); // Replace with iOS alternative if needed
+  }
+};
+
 const Transactions = () => {
   const { id } = useIdStore.getState();
   const theme = useThemeStore((state) => state.theme);
+  const styles = getstyles(theme);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -30,8 +53,12 @@ const Transactions = () => {
   const [uploadedImage, setUploadedImage] = useState(null);
   const [photoName, setPhotoName] = useState("");
   const [photoUri, setPhotoUri] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [proofUploaded, setProofUploaded] = useState(false);
 
-  const getThemeStyles = () => {
+  const [showRefresh, setShowRefresh] = useState(false);
+
+  const themeStyles = useMemo(() => {
     const isDark = theme === "dark";
     return {
       backgroundColor: isDark ? "#121212" : "#F9FAFB",
@@ -43,11 +70,10 @@ const Transactions = () => {
       buttonBackground: isDark ? "#BB86FC" : "#3B82F6",
       buttonText: "#FFFFFF",
     };
-  };
-  const showToast = (message) => {
-    ToastAndroid.show(message, ToastAndroid.LONG);
-  };
+  }, [theme]);
+
   const fetchTransactions = async () => {
+    setLoading(true);
     try {
       const response = await axios.post(
         `http://209.126.4.145:4000/transactions/getById/${id}`
@@ -59,11 +85,17 @@ const Transactions = () => {
       setError(null);
     } catch (err) {
       setError("Failed to load transactions. Pull down to refresh.");
-      console.error("API Error:", err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShowRefresh((prev) => !prev);
+    }, 10000); // Toggle every 10 seconds (you can adjust this as needed)
+    return () => clearInterval(interval); // Clean up the interval on component unmount
+  }, []);
 
   useEffect(() => {
     fetchTransactions();
@@ -87,160 +119,110 @@ const Transactions = () => {
         copyToCacheDirectory: true,
       });
 
-      if (result.assets && result.assets.length > 0) {
-        const fileAsset = result.assets[0];
-        const newPath = `${FileSystem.cacheDirectory}${fileAsset.name}`;
-        await FileSystem.copyAsync({
-          from: fileAsset.uri,
-          to: newPath,
-        });
+      if (result.assets?.length) {
+        const file = result.assets[0];
+        const newPath = `${FileSystem.cacheDirectory}${file.name}`;
+        await FileSystem.copyAsync({ from: file.uri, to: newPath });
 
         const base64 = await FileSystem.readAsStringAsync(newPath, {
           encoding: FileSystem.EncodingType.Base64,
         });
 
-        const mimeType = fileAsset.mimeType || "image/jpeg";
-        const fullBase64 = `data:${mimeType};base64,${base64}`;
-        setPhotoName(fileAsset.name);
-        setPhotoUri(fileAsset.uri);
-        setUploadedImage(fullBase64);
+        const mime = file.mimeType || "image/jpeg";
+        setUploadedImage(`data:${mime};base64,${base64}`);
+        setPhotoName(file.name);
+        setPhotoUri(file.uri);
       }
     } catch (error) {
-      console.error("Photo pick error:", error);
       showToast("Failed to pick photo");
     }
   };
-  
+
   const handleUploadProof = async () => {
-    if (!uploadedImage) {
+    if (!uploadedImage) return;
+
+    if (proofUploaded) {
+      showToast("Proof already uploaded!"); // Show warning if proof is already uploaded
       return;
     }
+
+    setUploading(true);
     try {
-      const response = await axios.put(
+      await axios.put(
         `http://209.126.4.145:4000/transactions/uploadImage/${selectedTransaction._id}`,
-        {
-          image: uploadedImage,
-        }
+        { image: uploadedImage }
       );
-      showToast("Proof of payment uploaded successfully");
+      setProofUploaded(true); // Mark as uploaded
+      showToast("Proof uploaded successfully");
       closeModal();
-    } catch (error) {
-      console.error("Upload error:", error);
-      showToast("Failed to upload proof of payment");
+      fetchTransactions(); // Refresh list
+    } catch (err) {
+      showToast("Failed to upload proof");
+    } finally {
+      setUploading(false);
     }
   };
-  const renderTransaction = useCallback(
-    ({ item }) => {
-      const themeStyles = getThemeStyles();
-      const approveColor = item.status
-        ? themeStyles.approveColor
-        : themeStyles.errorColor;
 
-      const getIconName = (type) => {
-        switch (type.toLowerCase()) {
-          case "deposit":
-            return "arrow-down-circle";
-          case "withdrawal":
-            return "arrow-up-circle";
-          case "transfer":
-            return "repeat";
-          case "payment":
-            return "credit-card";
-          default:
-            return "activity";
-        }
-      };
+  const renderTransaction = useCallback(({ item }) => {
+    const approveColor = item.status ? themeStyles.approveColor : themeStyles.errorColor;
 
-      return (
-        <View
-          style={[
-            styles.transaction,
-            { backgroundColor: themeStyles.cardBackground },
-          ]}
-        >
-          <Text style={[styles.idText, { color: themeStyles.secondaryText }]}>
-            {item.buyer.fullName}
-          </Text>
-          <View style={styles.transactionDetails}>
-            <View style={styles.detailColumn}>
-              <View style={styles.rowAligned}>
-                <Feather
-                  name={getIconName(item.type)}
-                  size={18}
-                  color={themeStyles.textColor}
-                  style={{ marginRight: 8 }}
-                />
-                <Text
-                  style={[styles.amountText, { color: themeStyles.textColor }]}
-                >
-                  ${(parseFloat(item.amount) || 0).toFixed(2)}
-                </Text>
-              </View>
-              <Text
-                style={[styles.typeText, { color: themeStyles.secondaryText }]}
-              >
-                {item.type}
+    return (
+      <View style={[styles.transaction, { backgroundColor: themeStyles.cardBackground }]}>
+        <Text style={[styles.idText, { color: themeStyles.secondaryText }]}>
+          {item.buyer.fullName}
+        </Text>
+        <View style={styles.transactionDetails}>
+          <View style={styles.detailColumn}>
+            <View style={styles.rowAligned}>
+              <Feather name={getIconName(item.type)} size={18} color={themeStyles.textColor} style={{ marginRight: 8 }} />
+              <Text style={[styles.amountText, { color: themeStyles.textColor }]}>
+                ${(parseFloat(item.amount) || 0).toFixed(2)}
               </Text>
             </View>
-            <View style={styles.detailColumn}>
-              <Text style={[styles.statusText, { color: approveColor }]}>
-                {item.status ? "✓ Completed" : "● Pending"}
-              </Text>
-              <Text
-                style={[styles.dateText, { color: themeStyles.secondaryText }]}
-              >
-                {format(new Date(item.updatedAt), "dd MMM yyyy, HH:mm")}
-              </Text>
-            </View>
-          </View>
-          <Pressable
-            android_ripple={{ color: "#00000020" }}
-            style={({ pressed }) => [
-              styles.requestButton,
-              {
-                backgroundColor: themeStyles.buttonBackground,
-                opacity: pressed ? 0.9 : 1,
-              },
-            ]}
-            onPress={() => openProofModal(item)}
-          >
-            <Text
-              style={[
-                styles.requestButtonText,
-                { color: themeStyles.buttonText },
-              ]}
-            >
-              {item.status ? "View Proof" : "Upload Proof"}
+            <Text style={[styles.typeText, { color: themeStyles.secondaryText }]}>
+              {item.type}
             </Text>
-          </Pressable>
+          </View>
+          <View style={styles.detailColumn}>
+            <Text style={[styles.statusText, { color: approveColor }]}>
+              {item.status ? "✓ Completed" : "● Pending"}
+            </Text>
+            <Text style={[styles.dateText, { color: themeStyles.secondaryText }]}>
+              {format(new Date(item.updatedAt), "dd MMM yyyy, HH:mm")}
+            </Text>
+          </View>
         </View>
-      );
-    },
-    [theme]
-  );
+
+        <Pressable
+          android_ripple={{ color: "#00000020" }}
+          style={({ pressed }) => [
+            styles.requestButton,
+            {
+              backgroundColor: themeStyles.buttonBackground,
+              opacity: pressed ? 0.9 : 1,
+            },
+          ]}
+          onPress={() => openProofModal(item)}
+        >
+          <Text style={[styles.requestButtonText, { color: themeStyles.buttonText }]}>
+            {item.status ? "View Proof" : "Upload Proof"}
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }, [theme]);
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Text
-        style={[styles.emptyText, { color: getThemeStyles().secondaryText }]}
-      >
+      <Text style={[styles.emptyText, { color: themeStyles.secondaryText }]}>
         {error || "No transactions found"}
       </Text>
-      {loading && (
-        <ActivityIndicator size="small" color={getThemeStyles().textColor} />
-      )}
+      {loading && <ActivityIndicator size="small" color={themeStyles.textColor} />}
     </View>
   );
 
-  const themeStyles = getThemeStyles();
-
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: themeStyles.backgroundColor },
-      ]}
-    >
+    <View style={[styles.container, { backgroundColor: themeStyles.backgroundColor }]}>
       <FlatList
         data={transactions}
         renderItem={renderTransaction}
@@ -250,61 +232,36 @@ const Transactions = () => {
         refreshing={loading}
         onRefresh={fetchTransactions}
         showsVerticalScrollIndicator={false}
-        initialNumToRender={10}
-        maxToRenderPerBatch={5}
-        windowSize={10}
+        refreshControl={showRefresh ? (
+          <RefreshControl refreshing={loading} onRefresh={fetchTransactions} />
+        ) : null}
       />
 
       <Modal
         visible={modalVisible}
         animationType="slide"
-        transparent={true}
+        transparent
         onRequestClose={closeModal}
       >
         <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalContent,
-              { backgroundColor: themeStyles.cardBackground },
-            ]}
-          >
-            <Text style={[styles.modalTitle, { color: themeStyles.textColor }]}>
-              Payment Proof
-            </Text>
+          <View style={[styles.modalContent, { backgroundColor: themeStyles.cardBackground }]}>
             {selectedTransaction && (
               <>
-                <Text
-                  style={[styles.modalText, { color: themeStyles.textColor }]}
-                >
-                  <Text style={styles.modalLabel}>Amount:</Text>{" "}
-                  {selectedTransaction.amount} {selectedTransaction.currency}
+                <Text style={[styles.modalTitle, { color: themeStyles.textColor }]}>Payment Proof</Text>
+                <Text style={[styles.modalText, { color: themeStyles.textColor }]}>
+                  <Text style={styles.modalLabel}>Amount:</Text> {selectedTransaction.amount} {selectedTransaction.currency}
                 </Text>
-                <Text
-                  style={[styles.modalText, { color: themeStyles.textColor }]}
-                >
-                  <Text style={styles.modalLabel}>Type:</Text>{" "}
-                  {selectedTransaction.type}
+                <Text style={[styles.modalText, { color: themeStyles.textColor }]}>
+                  <Text style={styles.modalLabel}>Type:</Text> {selectedTransaction.type}
                 </Text>
-                <Text
-                  style={[styles.modalText, { color: themeStyles.textColor }]}
-                >
-                  <Text style={styles.modalLabel}>Date:</Text>{" "}
-                  {format(
-                    new Date(selectedTransaction.updatedAt),
-                    "dd MMM yyyy, HH:mm"
-                  )}
+                <Text style={[styles.modalText, { color: themeStyles.textColor }]}>
+                  <Text style={styles.modalLabel}>Date:</Text> {format(new Date(selectedTransaction.updatedAt), "dd MMM yyyy, HH:mm")}
                 </Text>
-                <Text
-                  style={[styles.modalText, { color: themeStyles.textColor }]}
-                >
-                  <Text style={styles.modalLabel}>Status:</Text>{" "}
-                  {selectedTransaction.status ? "Completed" : "Pending"}
+                <Text style={[styles.modalText, { color: themeStyles.textColor }]}>
+                  <Text style={styles.modalLabel}>Status:</Text> {selectedTransaction.status ? "Completed" : "Pending"}
                 </Text>
-                <Text
-                  style={[styles.modalText, { color: themeStyles.textColor }]}
-                >
-                  <Text style={styles.modalLabel}>Txn ID:</Text>{" "}
-                  {selectedTransaction._id.toUpperCase()}
+                <Text style={[styles.modalText, { color: themeStyles.textColor }]}>
+                  <Text style={styles.modalLabel}>Txn ID:</Text> {selectedTransaction._id.toUpperCase()}
                 </Text>
 
                 {!selectedTransaction.status && (
@@ -312,47 +269,45 @@ const Transactions = () => {
                     <TouchableOpacity
                       onPress={handlePhotoPick}
                       style={styles.closeButton}
+                      disabled={proofUploaded}
                     >
                       <Text style={styles.closeButtonText}>
-                        Upload Payment Proof
+                        {proofUploaded ? "Proof already uploaded" : "Upload Payment Proof"}
                       </Text>
                     </TouchableOpacity>
                     {uploadedImage && (
                       <Image
                         source={{ uri: uploadedImage }}
-                        style={{
-                          width: "100%",
-                          height: 200,
-                          marginTop: 10,
-                          borderRadius: 10,
-                        }}
+                        style={styles.proofImage}
                         resizeMode="cover"
                       />
                     )}
+                    {uploadedImage && !proofUploaded && (
+                      <TouchableOpacity
+                        onPress={handleUploadProof}
+                        style={[
+                          styles.closeButton,
+                          {
+                            backgroundColor: themeStyles.buttonBackground,
+                            marginTop: 20,
+                            opacity: uploading ? 0.6 : 1,
+                          },
+                        ]}
+                        disabled={uploading || proofUploaded}
+                      >
+                        <Text style={[styles.closeButtonText, { color: themeStyles.buttonText }]}>
+                          {uploading ? "Uploading..." : "Submit Payment Proof"}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </>
                 )}
-            <TouchableOpacity
-            onPress={handleUploadProof}
-            style={[
-              styles.closeButton,
-              {
-                backgroundColor: themeStyles.buttonBackground,
-                marginTop: 20,
-              },
-            ]}              
-            >
-              <Text style={[styles.closeButtonText, { color: themeStyles.buttonText }]}>
-                Submit Payment Proof
-              </Text>
-            </TouchableOpacity>
-            </>
+
+                <TouchableOpacity onPress={closeModal} style={[styles.closeButton, { marginTop: 10 }]}>
+                  <Text style={styles.closeButtonText}>Close</Text>
+                </TouchableOpacity>
+              </>
             )}
-            <TouchableOpacity
-              onPress={closeModal}
-              style={[styles.closeButton, { marginTop: 10 }]}
-            >
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -360,114 +315,109 @@ const Transactions = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const getstyles = (theme)=> StyleSheet.create({
   container: {
-    flex: 1,
+    flex: 1
   },
   list: {
     paddingBottom: 100,
-    paddingTop: 16,
+    paddingTop: 16
   },
   transaction: {
     padding: 18,
     marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 12,
+    elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.07,
     shadowRadius: 4,
-    elevation: 2,
   },
   transactionDetails: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
+    flexDirection: "row", justifyContent: "space-between",
+    marginTop: 10
   },
   detailColumn: {
-    gap: 6,
-  },
-  idText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  amountText: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  typeText: {
-    fontSize: 14,
-    fontWeight: "500",
-    textTransform: "uppercase",
-  },
-  statusText: {
-    fontSize: 15,
-    fontWeight: "600",
-    textAlign: "right",
-  },
-  dateText: {
-    fontSize: 12,
-    fontWeight: "400",
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: 16,
+    gap: 6
   },
   rowAligned: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "center"
+  },
+  idText: {
+    fontSize: 13,
+    fontWeight: "500"
+  },
+  amountText: {
+    fontSize: 15,
+    fontWeight: "600"
+  },
+  typeText: {
+    fontSize: 12,
+    fontWeight: "500"
+  },
+  statusText: {
+    fontSize: 13,
+    fontWeight: "500"
+  },
+  dateText: {
+    fontSize: 12,
+    fontWeight: "400"
   },
   requestButton: {
-    marginTop: 14,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
+    marginTop: 14, paddingVertical: 10,
+    paddingHorizontal: 18, borderRadius: 8, alignItems: "center"
   },
   requestButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 14,
+    fontWeight: "500"
+  },
+  emptyContainer: {
+    flex: 1, justifyContent: "center",
+    alignItems: "center", gap: 10
+  },
+  emptyText: {
+    fontSize: 16, fontWeight: "500",
+    textAlign: "center"
   },
   modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
+    flex: 1, justifyContent: "center",
+    alignItems: "center", backgroundColor: "rgba(0, 0, 0, 0.5)"
   },
   modalContent: {
-    width: "85%",
-    borderRadius: 16,
-    padding: 20,
+    padding: 24, width: "80%",
+    borderRadius: 12
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 12,
+    fontSize: 18, fontWeight: "600",
+    marginBottom: 10
   },
   modalText: {
     fontSize: 15,
-    marginBottom: 8,
+    marginBottom: 6
   },
   modalLabel: {
-    fontWeight: "600",
+    fontWeight: "600"
+  },
+  proofImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 12,
+    marginTop: 12
   },
   closeButton: {
-    marginTop: 20,
-    backgroundColor: "#3B82F6",
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 8,
+    marginTop: 20,
     alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme === "dark" ? "#BB86FC" : "#3B82F6",
   },
   closeButtonText: {
-    color: "#fff",
-    fontWeight: "600",
     fontSize: 15,
+    fontWeight: "600",
+    color: "#FFFFFF"
   },
 });
 

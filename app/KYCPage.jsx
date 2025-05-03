@@ -49,6 +49,9 @@ const KYCPage = () => {
     ToastAndroid.show(message, ToastAndroid.LONG);
   };
 
+  const handleBack = () => {
+    // do nothing
+  };
   const handleDocumentPick = async (setFieldValue) => {
     try {
       const result = await DocumentPicker.getDocumentAsync({

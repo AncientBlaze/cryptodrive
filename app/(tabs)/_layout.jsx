@@ -9,7 +9,7 @@ export default function RootLayout() {
   const router = useRouter();
 
   const handleBackButtonPress = () => {
-    router.back();
+    router.canGoBack() ? router.back() : router.push("/");
   };
 
   const tabScreenOptions = {

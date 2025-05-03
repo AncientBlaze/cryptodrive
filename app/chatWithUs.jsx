@@ -3,7 +3,7 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   FlatList,
   StyleSheet,
   KeyboardAvoidingView,
@@ -13,18 +13,19 @@ import {
 } from "react-native";
 import useThemeStore from "../store/themeStore";
 import axios from "axios";
-import { useRouter } from "expo-router";
 import useIdStore from "../store/credentialStore";
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 const ChatWithUs = () => {
   const userid = useIdStore.getState().id;
   const API_URL = "http://209.126.4.145:4000";
-  
+
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [loading, setLoading] = useState(true);
   const theme = useThemeStore((state) => state.theme);
+  const styles = getstyles(theme);
   const flatListRef = useRef();
 
   const fetchMessages = async () => {
@@ -147,7 +148,7 @@ const ChatWithUs = () => {
 
   useEffect(() => {
     flatListRef.current?.scrollToEnd({ animated: true });
-  }, [messages]);
+  }, []);
 
   if (loading) {
     return (
@@ -184,21 +185,24 @@ const ChatWithUs = () => {
           onChangeText={setInput}
           placeholder="Type a message..."
         />
-        <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-          <Text style={styles.sendButtonText}>Send</Text>
-        </TouchableOpacity>
+        <Pressable onPress={sendMessage} style={styles.sendButton}>
+          <Ionicons name="send" size={20} color="#fff" />
+        </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9F9F9" },
+const getstyles = (theme) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme === "dark" ? "#000" : "#fff",
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F9F9F9",
+    backgroundColor: theme === "dark" ? "#000" : "#fff",
   },
   messagesContainer: { padding: 12 },
   messageRow: {
@@ -221,37 +225,39 @@ const styles = StyleSheet.create({
     backgroundColor: "#E0E0E0",
   },
   userBubble: {
-    backgroundColor: "#28C76F",
+    backgroundColor: theme === 'dark' ? '#6a0dad' : '#a020f0',
   },
   supportBubble: {
-    backgroundColor: "#E0E0E0",
+    backgroundColor: theme === 'dark' ? '#fff' : '#e0e0e0',
   },
   messageText: {
     fontSize: 16,
   },
   timestamp: {
     fontSize: 10,
-    color: "#888",
+    color: "#999",
     alignSelf: "flex-end",
     marginTop: 4,
   },
   inputContainer: {
     flexDirection: "row",
     padding: 10,
-    borderTopWidth: 1,
     borderColor: "#ddd",
-    backgroundColor: "#fff",
+    backgroundColor: theme === 'dark' ? '#000' : '#fff',
+    borderTopWidth: 1,
   },
   input: {
     flex: 1,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: theme === 'dark' ? '#777' : '#f0f0f0',
+    color: theme === 'dark' ? '#fff' : '#000',
     borderRadius: 20,
     paddingHorizontal: 15,
     height: 40,
   },
   sendButton: {
-    backgroundColor: "#28C76F",
-    paddingHorizontal: 20,
+    backgroundColor: theme === 'dark' ? '#6a0dad' : '#a020f0',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     marginLeft: 8,
     borderRadius: 20,
     justifyContent: "center",

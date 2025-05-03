@@ -15,14 +15,15 @@ import axios from "axios";
 import QRCode from "react-native-qrcode-svg";
 import * as Clipboard from "expo-clipboard";
 import useIdStore from "../../store/credentialStore.js";
+import { useNavigation } from "@react-navigation/native";
 
-const COINS = ["USDT", "BTC"]; // <- Move constants outside component
+const COINS = ["USDT", "BTC"];
 
 const CurrencySelector = ({ selected, onSelect, styles }) => (
   <View style={styles.currencyButtonContainer}>
     {COINS.map((currency) => (
       <TouchableOpacity
-        key={currency}
+      key={currency}
         style={[
           styles.currencyButton,
           selected === currency && styles.currencyButtonActive,
@@ -36,6 +37,7 @@ const CurrencySelector = ({ selected, onSelect, styles }) => (
 );
 
 const BuyCoinsModal = ({ visible, onClose, theme, onPurchaseSuccess }) => {
+  const navigation = useNavigation();
   const id  = useIdStore((state) => state.id);
   const [coins, setCoins] = useState("");
   const [price, setPrice] = useState(0);
@@ -144,9 +146,10 @@ const BuyCoinsModal = ({ visible, onClose, theme, onPurchaseSuccess }) => {
           coin: coins,
         }
       );
-      Alert.alert("Success", "Purchase completed!");
+      Alert.alert("Success", "Purchase completed! Redirecting to the Transactions Tab");
       onPurchaseSuccess();
       onClose();
+      navigation.navigate("transactions");
     } catch (error) {
       console.error("Error purchasing coins:", error);
       Alert.alert("Purchase Failed", "Please try again later.");

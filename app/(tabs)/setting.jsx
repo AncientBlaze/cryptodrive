@@ -11,6 +11,7 @@ import {
   ToastAndroid,
   TextInput,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -60,6 +61,10 @@ const SettingsScreen = () => {
   const showToast = (message) => ToastAndroid.show(message, ToastAndroid.LONG);
 
   const styles = useMemo(() => createStyles(theme), [theme]);
+
+  const handleRedirect = (url) => {
+    Linking.openURL(url).catch((err) => showToast('Failed to open URL'));
+  };
 
   const fetchUserData = async () => {
     try {
@@ -155,16 +160,16 @@ const SettingsScreen = () => {
           ),
         },
         { icon: 'language', title: 'App Language', subtitle: 'English', action: () => showToast('This is the Default Language') },
-        { icon: 'attach-money', title: 'Default Currency', subtitle: 'USD', action: () => showToast('This feature is under development') },
+        { icon: 'attach-money', title: 'Default Currency', subtitle: 'USD', action: () => showToast('The Default Currency is USD') },
       ],
     },
     {
       title: 'Support & Legal',
       data: [
         { icon: 'feedback', title: "Chat With Us", action: () => navigation.navigate('chatWithUs') },
-        { icon: 'help', title: 'Help Center', action: () => showToast('This feature is under development') },
-        { icon: 'description', title: 'Terms of Service', action: () => showToast('This feature is under development') },
-        { icon: 'policy', title: 'Privacy Policy', action: () => showToast('This feature is under development') },
+        { icon: 'help', title: 'Help Center', action: () => {handleRedirect("http://fxgoldcoin.com/help-center");} },
+        { icon: 'description', title: 'Terms of Service', action: () => {handleRedirect("http://fxgoldcoin.com/terms-and-conditions")} },
+        { icon: 'policy', title: 'Privacy Policy', action: () => {handleRedirect("https://fxgoldcoin.com/privacy-policy")} },
       ],
     },
   ];
